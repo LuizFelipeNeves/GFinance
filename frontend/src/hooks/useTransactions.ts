@@ -1,5 +1,5 @@
-import { MockData, fetchMoreTransactions } from '../data/mock';
-import type { Transaction } from '../data/types';
+import { MockData, fetchMoreTransactions } from '@/data/mock';
+import type { Transaction } from '@/data/types';
 import { useEffect, useState, useCallback } from 'react';
 
 export const useTransactions = () => {

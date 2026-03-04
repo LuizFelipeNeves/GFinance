@@ -1,6 +1,6 @@
 import { type LucideIcon } from 'lucide-react';
-import { FormatCurrency } from '../../../utils/format';
-import type { StatsItem } from '../../../data/types';
+import { FormatCurrency } from '@/utils/format';
+import type { StatsItem } from '@/data/types';
 
 interface StatCardProps {
   title: string;

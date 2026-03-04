@@ -1,4 +1,4 @@
-import { useUpload } from '../../../hooks/useUpload';
+import { useUpload } from '@/hooks/useUpload';
 import { ModalHeader } from './ModalHeader';
 import { DropZone } from './DropZone';
 import { ProcessingState } from './ProcessingState';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Download, FileDown } from 'lucide-react';
-import { TransactionsTable } from '../components/features/transactions';
-import { FileImportModal } from '../components/features/import';
+import { TransactionsTable } from '@/components/features/transactions';
+import { FileImportModal } from '@/components/features/import';
 
 const downloadTemplate = () => {
   const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];

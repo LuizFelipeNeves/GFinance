@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Receipt, LogOut, Wallet } from 'lucide-react';
-import { RemoveAuthToken } from '../../utils/token';
+import { RemoveAuthToken } from '@/utils/token';
 
 export const AppLayout = () => {
   const navigate = useNavigate();

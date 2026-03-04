@@ -1,7 +1,7 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import type { Transaction } from '../../../data/types';
+import type { Transaction } from '@/data/types';
 import { useNavigate } from 'react-router';
-import { FormatCurrency } from '../../../utils/format';
+import { FormatCurrency } from '@/utils/format';
 
 export const TransactionList = ({ transactions }: any) => {
   const navigate = useNavigate();

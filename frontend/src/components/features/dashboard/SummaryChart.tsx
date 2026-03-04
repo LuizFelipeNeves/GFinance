@@ -1,6 +1,6 @@
 import { PieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts';
-import type { Summary } from '../../../data/types';
-import { FormatCurrency } from '../../../utils/format';
+import type { Summary } from '@/data/types';
+import { FormatCurrency } from '@/utils/format';
 
 const Colours = [
   '#10B981', '#0F172A', '#6366F1', '#F59E0B', '#34D399',

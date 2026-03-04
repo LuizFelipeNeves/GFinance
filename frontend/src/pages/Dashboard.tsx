@@ -1,8 +1,8 @@
 import { Wallet, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { useDashboard } from '../hooks/useDashboard';
-import { StatCard, StatCardSkeleton, TransactionList, TransactionListSkeleton, SummaryChart, SummaryChartSkeleton } from '../components/features/dashboard';
+import { useDashboard } from '@/hooks/useDashboard';
+import { StatCard, StatCardSkeleton, TransactionList, TransactionListSkeleton, SummaryChart, SummaryChartSkeleton } from '@/components/features/dashboard';
 
 export const Dashboard = () => {
     const { data, isLoading, error } = useDashboard();

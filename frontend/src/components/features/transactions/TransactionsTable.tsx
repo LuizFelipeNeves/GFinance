@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useTransactions } from '../../../hooks/useTransactions';
+import { useTransactions } from '@/hooks/useTransactions';
 import { TableHeader } from './TableHeader';
 import { TransactionRow } from './TransactionRow';
 import { TransactionRowSkeleton } from './TransactionRowSkeleton';

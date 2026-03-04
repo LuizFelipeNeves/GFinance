@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { SetAuthToken } from '../utils/token';
+import { SetAuthToken } from '@/utils/token';
 import { useNavigate } from 'react-router';
 
 const loginSchema = z.object({

@@ -1,4 +1,4 @@
-import { MockData } from '../data/mock';
+import { MockData } from '@/data/mock';
 import { useEffect, useState } from 'react';
 
 export const useDashboard = () => {

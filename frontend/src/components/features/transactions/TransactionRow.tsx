@@ -1,6 +1,6 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { FormatCurrencySigned } from '../../../utils/format';
-import type { Transaction } from '../../../data/types';
+import { FormatCurrencySigned } from '@/utils/format';
+import type { Transaction } from '@/data/types';
 
 interface TransactionRowProps {
   transaction: Transaction;
