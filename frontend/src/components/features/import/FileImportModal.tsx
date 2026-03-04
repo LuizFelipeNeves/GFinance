@@ -4,6 +4,7 @@ import { ModalHeader } from './ModalHeader';
 import { DropZone } from './DropZone';
 import { ProcessingState } from './ProcessingState';
 import { SuccessState } from './SuccessState';
+import { ErrorState } from './ErrorState';
 import { ModalFooter } from './ModalFooter';
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 }
 
 export const FileImportModal = ({ isOpen, onClose }: Props) => {
-  const { step, progress, currentTask, file, startUpload, reset } = useUpload();
+  const { step, progress, currentTask, file, validationResult, startUpload, reset } = useUpload();
 
   const handleClose = () => {
     reset();
@@ -21,6 +22,10 @@ export const FileImportModal = ({ isOpen, onClose }: Props) => {
 
   const handleStartUpload = () => {
     if (file) startUpload(file);
+  };
+
+  const handleRetry = () => {
+    reset();
   };
 
   return (
@@ -40,10 +45,19 @@ export const FileImportModal = ({ isOpen, onClose }: Props) => {
             onRemove={reset}
           />
         )}
+        {step === 'validating' && (
+          <ProcessingState progress={50} currentTask="Validando estrutura do arquivo..." />
+        )}
         {step === 'processing' && (
           <ProcessingState progress={progress} currentTask={currentTask} />
         )}
         {step === 'success' && <SuccessState />}
+        {step === 'error' && validationResult && (
+          <ErrorState
+            errors={validationResult.errors}
+            onRetry={handleRetry}
+          />
+        )}
       </div>
 
       <ModalFooter

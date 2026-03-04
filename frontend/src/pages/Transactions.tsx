@@ -3,12 +3,10 @@ import { Plus, Download, FileDown, CirclePlus } from 'lucide-react';
 import { TransactionsTable } from '@/components/features/transactions';
 import { FileImportModal } from '@/components/features/import';
 import { AddTransactionModal } from '@/components/features/transactions/AddTransactionModal';
+import { generateSampleCsv } from '@/utils/csv';
 
 const downloadTemplate = () => {
-  const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
-  const example = ['2026-03-04', 'entrada', '150.00', 'Software', 'Pagamento Exemplo'];
-  const csvContent = [headers.join(','), example.join(',')].join('\n');
-
+  const csvContent = generateSampleCsv();
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

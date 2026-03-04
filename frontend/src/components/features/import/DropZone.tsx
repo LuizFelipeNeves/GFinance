@@ -24,6 +24,7 @@ export const DropZone = ({ file, onFileSelect, onRemove }: DropZoneProps) => {
         type="file"
         ref={fileInputRef}
         className="hidden"
+        accept=".csv"
         onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
       />
 
