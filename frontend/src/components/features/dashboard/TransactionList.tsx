@@ -1,6 +1,7 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import type { Transaction } from '../../../data/mock';
 import { useNavigate } from 'react-router';
+import { FormatCurrency } from '../../../utils/format';
 
 export const TransactionList = ({ transactions }: any) => {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export const TransactionList = ({ transactions }: any) => {
       </div>
 
       <div className="divide-y divide-slate-50">
-        {transactions.map((t: Transaction, i: number) => (
+        {transactions?.map((t: Transaction, i: number) => (
           <div key={i} className="px-4 sm:px-6 py-3 sm:py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className={`p-2 rounded-xl shrink-0 ${t.type === 'in' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
@@ -27,7 +28,7 @@ export const TransactionList = ({ transactions }: any) => {
               </div>
             </div>
             <span className={`text-sm font-bold shrink-0 ml-2 ${t.type === 'in' ? 'text-emerald-600' : 'text-slate-900'}`}>
-              {t.val}
+              {FormatCurrency(t.val)}
             </span>
           </div>
         ))}
