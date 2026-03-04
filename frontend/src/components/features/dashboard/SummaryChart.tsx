@@ -1,5 +1,5 @@
 import { PieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts';
-import type { Summary } from '../../../data/mock';
+import type { Summary } from '../../../data/types';
 import { FormatCurrency } from '../../../utils/format';
 
 const Colours = [

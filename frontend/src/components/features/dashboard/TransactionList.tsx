@@ -1,5 +1,5 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import type { Transaction } from '../../../data/mock';
+import type { Transaction } from '../../../data/types';
 import { useNavigate } from 'react-router';
 import { FormatCurrency } from '../../../utils/format';
 
