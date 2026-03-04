@@ -7,6 +7,13 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { BaseModal } from '@/components/shared/BaseModal';
 import type { Transaction } from '@/data/types';
 
+const convertToInputDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
+
 const transactionSchema = z.object({
   desc: z.string().min(1, 'Descrição obrigatória'),
   cat: z.string().min(1, 'Categoria obrigatória'),
@@ -45,7 +52,7 @@ export const AddTransactionModal = ({ isOpen, onClose, transaction, onSuccess }:
         reset({
           desc: transaction.desc,
           cat: transaction.cat,
-          date: transaction.date,
+          date: convertToInputDate(transaction.date),
           val: transaction.val.toString(),
           type: transaction.type,
         });

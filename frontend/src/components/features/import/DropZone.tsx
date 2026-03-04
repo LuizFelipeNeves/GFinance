@@ -10,6 +10,14 @@ interface DropZoneProps {
 export const DropZone = ({ file, onFileSelect, onRemove }: DropZoneProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      onFileSelect(selectedFile);
+    }
+    e.target.value = '';
+  };
+
   return (
     <div
       onClick={() => fileInputRef.current?.click()}
@@ -25,7 +33,7 @@ export const DropZone = ({ file, onFileSelect, onRemove }: DropZoneProps) => {
         ref={fileInputRef}
         className="hidden"
         accept=".csv"
-        onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
+        onChange={handleFileChange}
       />
 
       {!file ? (

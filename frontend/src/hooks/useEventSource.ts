@@ -23,6 +23,7 @@ interface UseEventSourceReturn {
 export const useEventSource = (options: UseEventSourceOptions = {}): UseEventSourceReturn => {
     const eventSourceRef = useRef<EventSource | null>(null);
     const isConnectedRef = useRef(false);
+    const isCompletedRef = useRef(false);
 
     const disconnect = useCallback(() => {
         if (eventSourceRef.current) {
@@ -34,6 +35,7 @@ export const useEventSource = (options: UseEventSourceOptions = {}): UseEventSou
 
     const connect = useCallback((url: string) => {
         disconnect();
+        isCompletedRef.current = false;
 
         const eventSource = new EventSource(url);
         eventSourceRef.current = eventSource;
@@ -50,6 +52,7 @@ export const useEventSource = (options: UseEventSourceOptions = {}): UseEventSou
                 if (data.type === 'progress') {
                     options.onProgress?.(data);
                 } else if (data.type === 'complete') {
+                    isCompletedRef.current = true;
                     options.onComplete?.(data);
                 } else if (data.type === 'error') {
                     options.onError?.(data.message || 'Erro desconhecido');
@@ -60,6 +63,10 @@ export const useEventSource = (options: UseEventSourceOptions = {}): UseEventSou
         };
 
         eventSource.onerror = () => {
+            if (isCompletedRef.current) {
+                disconnect();
+                return;
+            }
             disconnect();
             options.onError?.('Conexão perdida');
         };

@@ -53,13 +53,13 @@ export const Transactions = () => {
             <FileDown size={14} />
             <span>Modelo</span>
           </button>
-          <button onClick={handleExport} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
-            <Download size={14} />
-            <span>Exportar</span>
-          </button>
           <button onClick={() => setIsImportModalOpen(true)} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
             <Plus size={14} />
             <span>Importar</span>
+          </button>
+          <button onClick={handleExport} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
+            <Download size={14} />
+            <span>Exportar</span>
           </button>
         </div>
       </header>
