@@ -153,15 +153,6 @@ export const api = {
             return response.json();
         },
 
-        import: async (rows: { descricao: string; categoria: string; data: string; valor: number; tipo: string }[]): Promise<ImportResponse> => {
-            const response = await fetch(`${API_BASE}/transactions/import`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ rows }),
-            });
-            return response.json();
-        },
-
         importFile: (file: File, onProgress?: (progress: UploadProgress) => void): Promise<ImportResponse> => {
             return new Promise((resolve, reject) => {
                 const formData = new FormData();

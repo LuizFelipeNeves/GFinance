@@ -2,13 +2,23 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import Papa from 'papaparse';
+import swaggerUi from 'swagger-ui-express';
 import { mockData, mockUsers, fetchMoreTransactions, importJobs, type Transaction } from './mock.js';
+import { validate } from './middleware/validate.js';
+import { loginSchema, registerSchema, transactionSchema, transactionUpdateSchema } from './validation.js';
+import { swaggerSpec } from './swagger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (_req: Request, res: Response) => {
+    res.json(swaggerSpec);
+});
 
 // Configure multer for file upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -65,11 +75,15 @@ const filterTransactions = (transactions: Transaction[], filters: TransactionFil
 
 // GET /api/dashboard - Dashboard data
 app.get('/api/dashboard', (_req: Request, res: Response) => {
-    res.json(mockData);
+    const recentTransactions = mockData.transactions.slice(0, 8);
+    res.json({
+        ...mockData,
+        transactions: recentTransactions,
+    });
 });
 
 // POST /api/auth/login - Login
-app.post('/api/auth/login', (req: Request, res: Response) => {
+app.post('/api/auth/login', validate(loginSchema), (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     const user = mockUsers.find(u => u.email === email && u.password === password);
@@ -93,7 +107,7 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 });
 
 // POST /api/auth/register - Register
-app.post('/api/auth/register', (req: Request, res: Response) => {
+app.post('/api/auth/register', validate(registerSchema), (req: Request, res: Response) => {
     const { name, email, password } = req.body;
 
     const existingUser = mockUsers.find(u => u.email === email);
@@ -114,9 +128,12 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
 
     mockUsers.push(newUser);
 
+    const token = 'mock-jwt-token-' + Date.now();
+
     res.status(201).json({
         success: true,
         message: 'Conta criada com sucesso',
+        token,
         user: {
             id: newUser.id,
             name: newUser.name,
@@ -169,7 +186,7 @@ app.get('/api/transactions', (req: Request, res: Response) => {
 });
 
 // POST /api/transactions - Add new transaction
-app.post('/api/transactions', (req: Request, res: Response) => {
+app.post('/api/transactions', validate(transactionSchema), (req: Request, res: Response) => {
     const { desc, cat, date, val, type } = req.body;
 
     const newTransaction: Transaction = {
@@ -187,7 +204,7 @@ app.post('/api/transactions', (req: Request, res: Response) => {
 });
 
 // PUT /api/transactions/:id - Update transaction
-app.put('/api/transactions/:id', (req: Request, res: Response) => {
+app.put('/api/transactions/:id', validate(transactionUpdateSchema), (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { desc, cat, date, val, type } = req.body;
 
@@ -221,30 +238,6 @@ app.delete('/api/transactions/:id', (req: Request, res: Response) => {
     mockData.transactions = mockData.transactions.filter(t => t.id !== id);
 
     res.json({ success: true, id });
-});
-
-// POST /api/transactions/import - Import transactions from CSV
-app.post('/api/transactions/import', (req: Request, res: Response) => {
-    const { rows } = req.body;
-
-    if (rows && rows.length > 0) {
-        const newTransactions: Transaction[] = rows.map((r: { descricao: string; categoria: string; data: string; valor: number; tipo: string }, i: number) => ({
-            id: `t-import-${Date.now()}-${i}`,
-            desc: r.descricao,
-            cat: r.categoria,
-            date: r.data,
-            val: r.valor,
-            type: r.tipo
-        }));
-
-        mockData.transactions = [...newTransactions, ...mockData.transactions];
-    }
-
-    res.json({
-        success: true,
-        imported: rows?.length || 0,
-        message: `${rows?.length || 0} transações importadas com sucesso`
-    });
 });
 
 // POST /api/transactions/import-file - Upload file and start processing
