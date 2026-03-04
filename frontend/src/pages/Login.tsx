@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SetAuthToken } from '../utils/token';
+import { useNavigate } from 'react-router';
 
 const loginSchema = z.object({
   email: z.email('E-mail inválido'),
@@ -25,12 +27,23 @@ const LoginForm = () => {
     resolver: zodResolver(loginSchema)
   });
 
+  const navigate = useNavigate();
+
   const onSubmit = async (data: any) => {
     await new Promise(r => setTimeout(r, 1500));
     console.log('Login:', data);
     toast('Bem-vindo de volta!', {
       description: 'Login realizado com sucesso no GFinance',
       icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+    });
+    SetAuthToken('fake-token');
+    navigate('/dashboard'); 
+  };
+
+  const forgotPassword = () => {
+    toast('Recuperação de senha', {
+      description: 'Funcionalidade de recuperação de senha ainda não implementada.',
+      icon: <Loader2 className="h-5 w-5 text-slate-400 animate-spin" />,
     });
   };
 
@@ -48,7 +61,7 @@ const LoginForm = () => {
       <div className="space-y-1">
         <div className="flex justify-between ml-1">
           <label className="text-xs font-semibold text-slate-500">Senha</label>
-          <a href="#" className="text-xs font-medium text-emerald-600">Esqueceu?</a>
+          <span onClick={forgotPassword} className="text-xs font-medium text-emerald-600">Esqueceu?</span>
         </div>
         <div className="relative group">
           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
@@ -69,6 +82,8 @@ const RegisterForm = () => {
     resolver: zodResolver(registerSchema)
   });
 
+  const navigate = useNavigate();
+
   const onSubmit = async (data: any) => {
     await new Promise(r => setTimeout(r, 1500));
     console.log('Registro:', data);
@@ -76,6 +91,8 @@ const RegisterForm = () => {
       description: 'Bem-vindo ao GFinance, sua jornada financeira começa agora.',
       icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
     });
+    SetAuthToken('fake-token');
+    navigate('/dashboard'); 
   };
 
   return (
