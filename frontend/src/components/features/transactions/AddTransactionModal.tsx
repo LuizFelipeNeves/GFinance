@@ -25,10 +25,10 @@ interface AddTransactionModalProps {
 }
 
 export const AddTransactionModal = ({ isOpen, onClose, transaction, onSuccess }: AddTransactionModalProps) => {
-  const { updateTransaction } = useTransactions();
+  const { createTransaction, updateTransaction, isCreating, isUpdating } = useTransactions();
   const isEditing = !!transaction;
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<TransactionData>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<TransactionData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       desc: '',
@@ -65,18 +65,27 @@ export const AddTransactionModal = ({ isOpen, onClose, transaction, onSuccess }:
 
   const onSubmit = async (data: TransactionData) => {
     try {
-      await new Promise(r => setTimeout(r, 500));
-
       if (isEditing && transaction) {
-        updateTransaction(transaction.id, {
+        await updateTransaction({
+          id: transaction.id,
+          data: {
+            desc: data.desc,
+            cat: data.cat,
+            date: data.date,
+            val: parseFloat(data.val),
+            type: data.type,
+          },
+        });
+        toast.success('Transação atualizada com sucesso!');
+        onSuccess?.();
+      } else {
+        await createTransaction({
           desc: data.desc,
           cat: data.cat,
           date: data.date,
           val: parseFloat(data.val),
           type: data.type,
         });
-        onSuccess?.();
-      } else {
         toast.success('Transação adicionada com sucesso!');
         onClose();
         reset({
@@ -187,10 +196,10 @@ export const AddTransactionModal = ({ isOpen, onClose, transaction, onSuccess }:
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isCreating || isUpdating}
             className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-all disabled:opacity-50"
           >
-            {isSubmitting ? 'Salvando...' : 'Salvar'}
+            {isCreating || isUpdating ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
       </form>

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTransactions } from '@/hooks/useTransactions';
+import { useTransactions, type TransactionFilters } from '@/hooks/useTransactions';
 import { TableHeader } from './TableHeader';
 import { TransactionRow } from './TransactionRow';
 import { TransactionRowSkeleton } from './TransactionRowSkeleton';
@@ -12,9 +13,10 @@ import type { Transaction } from '@/data/types';
 type FilterType = 'all' | 'in' | 'out';
 
 export const TransactionsTable = () => {
-  const { transactions, isLoading, loadMore, removeTransaction } = useTransactions();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; transaction: Transaction | null }>({
     isOpen: false,
     transaction: null,
@@ -23,36 +25,45 @@ export const TransactionsTable = () => {
     isOpen: false,
     transaction: null,
   });
-  const loaderRef = useRef<HTMLDivElement>(null);
 
-  const filteredItems = useMemo(() => {
-    return transactions.filter(item => {
-      const matchesSearch = item.desc.toLowerCase().includes(search.toLowerCase());
-      const matchesType = filterType === 'all' || item.type === filterType;
-      return matchesSearch && matchesType;
-    });
-  }, [transactions, search, filterType]);
+  const { ref: loadMoreRef, inView } = useInView();
+
+  const filters: TransactionFilters = {
+    type: filterType,
+    search: search,
+    dateFrom,
+    dateTo,
+  };
+
+  const {
+    transactions,
+    isLoading,
+    isFetchingNextPage,
+    hasMore,
+    loadMore,
+    deleteTransaction,
+  } = useTransactions(filters);
 
   const isInitialLoading = isLoading && transactions.length === 0;
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !isLoading && search === '') {
-        loadMore();
-      }
-    }, { threshold: 0.1 });
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [isLoading, search, loadMore]);
+    if (inView && !isLoading && !isFetchingNextPage && hasMore) {
+      loadMore();
+    }
+  }, [inView, isLoading, isFetchingNextPage, hasMore, loadMore]);
 
   const handleDeleteClick = (transaction: Transaction) => {
     setDeleteModal({ isOpen: true, transaction });
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteModal.transaction) {
-      removeTransaction(deleteModal.transaction.id);
-      toast.success('Transação excluída com sucesso!');
+      try {
+        await deleteTransaction(deleteModal.transaction.id);
+        toast.success('Transação excluída com sucesso!');
+      } catch {
+        toast.error('Erro ao excluir transação');
+      }
     }
     setDeleteModal({ isOpen: false, transaction: null });
   };
@@ -63,7 +74,6 @@ export const TransactionsTable = () => {
 
   const handleEditSuccess = () => {
     setEditModal({ isOpen: false, transaction: null });
-    toast.success('Transação atualizada com sucesso!');
   };
 
   return (
@@ -73,6 +83,10 @@ export const TransactionsTable = () => {
         onSearchChange={setSearch}
         filterType={filterType}
         onFilterChange={setFilterType}
+        dateFrom={dateFrom}
+        onDateFromChange={setDateFrom}
+        dateTo={dateTo}
+        onDateToChange={setDateTo}
       />
 
       <div className="flex-1 overflow-auto">
@@ -88,7 +102,7 @@ export const TransactionsTable = () => {
             {isInitialLoading ? (
               [...Array(5)].map((_, i) => <TransactionRowSkeleton key={i} />)
             ) : (
-              filteredItems.map((transaction) => (
+              transactions.map((transaction: Transaction) => (
                 <TransactionRow
                   key={transaction.id}
                   transaction={transaction}
@@ -99,18 +113,21 @@ export const TransactionsTable = () => {
             )}
           </tbody>
         </table>
-        {!isInitialLoading && (
-          <div ref={loaderRef} className="p-10 flex flex-col items-center justify-center border-t border-slate-50 bg-slate-50/10">
-            {isLoading ? (
-              <div className="flex flex-col items-center gap-2">
-                <Loader2 className="animate-spin text-emerald-500" size={20} />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Sincronizando dados...</span>
-              </div>
-            ) : (
-              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Fim do histórico</span>
-            )}
+        {!isInitialLoading && transactions.length === 0 && (
+          <div className="p-10 flex flex-col items-center justify-center border-t border-slate-50 bg-slate-50/10">
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Nenhuma transação encontrada</span>
           </div>
         )}
+        <div ref={loadMoreRef} className="p-10 flex flex-col items-center justify-center border-t border-slate-50 bg-slate-50/10">
+          {isFetchingNextPage ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="animate-spin text-emerald-500" size={20} />
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Sincronizando dados...</span>
+            </div>
+          ) : !hasMore && transactions.length > 0 ? (
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Fim do histórico</span>
+          ) : null}
+        </div>
       </div>
 
       <ConfirmModal

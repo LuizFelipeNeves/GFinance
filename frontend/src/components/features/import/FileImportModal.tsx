@@ -46,15 +46,20 @@ export const FileImportModal = ({ isOpen, onClose }: Props) => {
           />
         )}
         {step === 'validating' && (
-          <ProcessingState progress={50} currentTask="Validando estrutura do arquivo..." />
+          <ProcessingState progress={30} currentTask="Validando estrutura do arquivo..." />
         )}
-        {step === 'processing' && (
+        {(step === 'uploading' || step === 'processing') && (
           <ProcessingState progress={progress} currentTask={currentTask} />
         )}
         {step === 'success' && <SuccessState />}
-        {step === 'error' && validationResult && (
+        {step === 'error' && validationResult && !validationResult.isValid && validationResult.errors.length > 0 ? (
           <ErrorState
             errors={validationResult.errors}
+            onRetry={handleRetry}
+          />
+        ) : step === 'error' && (
+          <ErrorState
+            errors={['Erro ao processar arquivo. Tente novamente.']}
             onRetry={handleRetry}
           />
         )}

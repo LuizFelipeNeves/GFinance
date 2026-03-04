@@ -8,7 +8,7 @@ interface ModalFooterProps {
 }
 
 export const ModalFooter = ({ step, file, onCancel, onStartUpload }: ModalFooterProps) => {
-  if (step === 'validating' || step === 'processing' || step === 'error') {
+  if (step === 'validating' || step === 'uploading' || step === 'processing' || step === 'error') {
     return null;
   }
 

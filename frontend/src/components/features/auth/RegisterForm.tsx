@@ -3,8 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Mail, User, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { SetAuthToken } from '@/utils/token';
 import { useNavigate } from 'react-router';
+import { useRegister } from '@/hooks/useAuth';
 
 const registerSchema = z.object({
   name: z.string().min(3, 'Nome muito curto'),
@@ -19,21 +19,29 @@ const registerSchema = z.object({
 type RegisterData = z.infer<typeof registerSchema>;
 
 export const RegisterForm = () => {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema)
   });
 
   const navigate = useNavigate();
+  const { mutateAsync: registerUser, isPending: isSubmitting } = useRegister();
 
-  const onSubmit = async (_data: RegisterData) => {
+  const onSubmit = async (data: RegisterData) => {
     try {
-      await new Promise(r => setTimeout(r, 1500));
-      toast('Conta criada com sucesso!', {
-        description: 'Bem-vindo ao GFinance, sua jornada financeira começa agora.',
-        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
-      });
-      SetAuthToken('fake-token');
-      navigate('/dashboard');
+      const response = await registerUser({ name: data.name, email: data.email, password: data.password });
+
+      if (response.success) {
+        toast('Conta criada com sucesso!', {
+          description: 'Bem-vindo ao GFinance, sua jornada financeira começa agora.',
+          icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+        });
+        navigate('/dashboard');
+      } else {
+        toast('Erro ao criar conta', {
+          description: response.message || 'Tente novamente mais tarde.',
+          icon: <AlertCircle className="h-5 w-5 text-rose-500" />,
+        });
+      }
     } catch {
       toast('Erro ao criar conta', {
         description: 'Tente novamente mais tarde.',
@@ -94,6 +102,7 @@ export const RegisterForm = () => {
       </div>
 
       <button
+        type="submit"
         disabled={isSubmitting}
         className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-medium py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 mt-2"
       >

@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { api, type UploadProgress } from '@/services/api';
+import { useEventSource, type SseMessage } from '@/hooks/useEventSource';
 import { validateFileExtension, validateCsvStructure, type CsvValidationResult } from '@/utils/csv';
 
-export type UploadStep = 'idle' | 'validating' | 'processing' | 'success' | 'error';
+export type UploadStep = 'idle' | 'validating' | 'uploading' | 'processing' | 'success' | 'error';
 
 interface UseUploadReturn {
     step: UploadStep;
@@ -14,12 +17,6 @@ interface UseUploadReturn {
     reset: () => void;
 }
 
-const TASKS = [
-    'Lendo dados do arquivo...',
-    'Validando estrutura do CSV...',
-    'Salvando transações...'
-];
-
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
@@ -28,6 +25,36 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
     const [currentTask, setCurrentTask] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [validationResult, setValidationResult] = useState<CsvValidationResult | null>(null);
+    const queryClient = useQueryClient();
+
+    const handleSseProgress = useCallback((data: SseMessage) => {
+        if (data.progress !== undefined) {
+            setProgress(data.progress);
+        }
+        if (data.message) {
+            setCurrentTask(data.message);
+        }
+    }, []);
+
+    const handleSseComplete = useCallback(() => {
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        setStep('success');
+        onSuccess?.();
+    }, [onSuccess, queryClient]);
+
+    const handleSseError = useCallback((error: string) => {
+        setStep('error');
+        toast.error('Erro ao processar arquivo', {
+            description: error,
+        });
+    }, []);
+
+    const { connect: connectSse, disconnect: disconnectSse } = useEventSource({
+        onProgress: handleSseProgress,
+        onComplete: handleSseComplete,
+        onError: handleSseError,
+    });
 
     const reset = useCallback(() => {
         setStep('idle');
@@ -35,7 +62,8 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
         setCurrentTask('');
         setFile(null);
         setValidationResult(null);
-    }, []);
+        disconnectSse();
+    }, [disconnectSse]);
 
     const startUpload = useCallback(async (selectedFile: File) => {
         if (!validateFileExtension(selectedFile.name)) {
@@ -67,43 +95,37 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
                 return;
             }
 
+            setStep('uploading');
+            setProgress(0);
+            setCurrentTask('Enviando arquivo...');
+
+            const response = await api.transactions.importFile(selectedFile, (uploadProgress: UploadProgress) => {
+                setProgress(uploadProgress.percent);
+            });
+
+            if (!response.success) {
+                setStep('error');
+                toast.error('Erro ao processar arquivo', {
+                    description: response.message || 'Tente novamente',
+                });
+                return;
+            }
+
+            setProgress(90);
             setStep('processing');
-        } catch {
+            setCurrentTask('Processando transações...');
+
+            if (response.jobId) {
+                connectSse(`http://localhost:3001/api/transactions/import/stream?jobId=${response.jobId}`);
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error);
             setStep('error');
-            setValidationResult({
-                isValid: false,
-                errors: ['Erro ao processar arquivo. Tente novamente.'],
-                rows: []
+            toast.error('Erro ao enviar arquivo', {
+                description: 'Tente novamente mais tarde.',
             });
         }
-    }, []);
-
-    useEffect(() => {
-        if (step === 'processing' && validationResult?.isValid) {
-            setCurrentTask(TASKS[0]);
-
-            const interval = setInterval(() => {
-                setProgress((prev) => {
-                    if (prev >= 100) {
-                        clearInterval(interval);
-                        setStep('success');
-                        onSuccess?.();
-                        return 100;
-                    }
-
-                    const next = prev + Math.random() * 15;
-
-                    if (next < 30) setCurrentTask(TASKS[0]);
-                    else if (next < 60) setCurrentTask(TASKS[1]);
-                    else setCurrentTask(TASKS[2]);
-
-                    return next;
-                });
-            }, 400);
-
-            return () => clearInterval(interval);
-        }
-    }, [step, validationResult, onSuccess]);
+    }, [connectSse]);
 
     return {
         step,

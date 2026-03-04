@@ -1,10 +1,11 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Receipt, LogOut, Wallet } from 'lucide-react';
-import { RemoveAuthToken } from '@/utils/token';
+import { RemoveAuthToken, GetAuthUser } from '@/utils/token';
 
 export const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const user = GetAuthUser();
 
   const handleLogout = () => {
     RemoveAuthToken();
@@ -66,7 +67,9 @@ export const AppLayout = () => {
           </div>
           
           <div className="hidden lg:block">
-            <h2 className="text-sm font-medium text-slate-400">Bem-vindo de volta!</h2>
+            <h2 className="text-sm font-medium text-slate-400">
+              Bem-vindo{user ? `, ${user.name}` : ''}!
+            </h2>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

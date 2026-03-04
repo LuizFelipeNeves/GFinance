@@ -3,8 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Mail, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { SetAuthToken } from '@/utils/token';
 import { useNavigate } from 'react-router';
+import { useLogin } from '@/hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.email('E-mail inválido'),
@@ -14,21 +14,28 @@ const loginSchema = z.object({
 type LoginData = z.infer<typeof loginSchema>;
 
 export const LoginForm = () => {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginData>({
     resolver: zodResolver(loginSchema)
   });
 
   const navigate = useNavigate();
+  const { mutateAsync: login, isPending: isSubmitting } = useLogin();
 
-  const onSubmit = async (_data: LoginData) => {
+  const onSubmit = async (data: LoginData) => {
     try {
-      await new Promise(r => setTimeout(r, 1500));
-      toast('Bem-vindo de volta!', {
-        description: 'Login realizado com sucesso no GFinance',
-        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
-      });
-      SetAuthToken('fake-token');
-      navigate('/dashboard');
+      const response = await login({ email: data.email, password: data.password });
+      if (response.success && response.user) {
+        toast('Bem-vindo de volta!', {
+          description: `Olá, ${response.user.name}!`,
+          icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+        });
+        navigate('/dashboard');
+      } else {
+        toast('Erro ao fazer login', {
+          description: response.message || 'E-mail ou senha inválidos',
+          icon: <AlertCircle className="h-5 w-5 text-rose-500" />,
+        });
+      }
     } catch {
       toast('Erro ao fazer login', {
         description: 'Tente novamente mais tarde.',
@@ -77,6 +84,7 @@ export const LoginForm = () => {
       </div>
 
       <button
+        type="submit"
         disabled={isSubmitting}
         className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-medium py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 mt-2"
       >
