@@ -9,8 +9,14 @@ export const TransactionRowSkeleton = () => (
         </div>
       </div>
     </td>
-    <td className="px-4 md:px-8 py-3 md:py-4 align-middle text-right">
+    <td className="hidden md:table-cell px-4 md:px-8 py-3 md:py-4 align-middle text-right">
       <div className="w-16 md:w-20 h-3 md:h-4 bg-slate-100 rounded ml-auto" />
+    </td>
+    <td className="px-2 md:px-4 py-3 md:py-4 align-middle text-right">
+      <div className="flex gap-1 justify-end">
+        <div className="w-6 h-6 bg-slate-100 rounded" />
+        <div className="w-6 h-6 bg-slate-100 rounded" />
+      </div>
     </td>
   </tr>
 );

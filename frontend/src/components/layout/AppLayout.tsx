@@ -62,7 +62,7 @@ export const AppLayout = () => {
              <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">
                 <Wallet size={16} />
              </div>
-             <span className="font-bold text-slate-900">Finance.io</span>
+             <span className="font-bold text-slate-900">GFinance</span>
           </div>
           
           <div className="hidden lg:block">

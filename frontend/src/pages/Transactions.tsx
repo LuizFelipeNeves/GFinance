@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Plus, Download, FileDown } from 'lucide-react';
+import { Plus, Download, FileDown, CirclePlus } from 'lucide-react';
 import { TransactionsTable } from '@/components/features/transactions';
 import { FileImportModal } from '@/components/features/import';
+import { AddTransactionModal } from '@/components/features/transactions/AddTransactionModal';
 
 const downloadTemplate = () => {
   const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
@@ -17,7 +18,8 @@ const downloadTemplate = () => {
 };
 
 export const Transactions = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
@@ -26,7 +28,11 @@ export const Transactions = () => {
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Transações</h1>
           <p className="text-xs text-slate-400 font-medium">Histórico financeiro consolidado.</p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="grid grid-cols-2 md:flex gap-2 w-full md:w-auto">
+          <button onClick={() => setIsAddModalOpen(true)} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-all">
+            <CirclePlus size={14} />
+            <span>Adicionar</span>
+          </button>
           <button onClick={downloadTemplate} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
             <FileDown size={14} />
             <span>Modelo</span>
@@ -35,7 +41,7 @@ export const Transactions = () => {
             <Download size={14} />
             <span>Exportar</span>
           </button>
-          <button onClick={() => setIsModalOpen(true)} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-all">
+          <button onClick={() => setIsImportModalOpen(true)} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
             <Plus size={14} />
             <span>Importar</span>
           </button>
@@ -44,7 +50,8 @@ export const Transactions = () => {
       <main className="w-full">
         <TransactionsTable />
       </main>
-      <FileImportModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <FileImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+      <AddTransactionModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
     </div>
   );
 };

@@ -39,11 +39,21 @@ export const useTransactions = () => {
         setHasMore(true);
     }, []);
 
+    const removeTransaction = useCallback((id: string) => {
+        setTransactions(prev => prev.filter(t => t.id !== id));
+    }, []);
+
+    const updateTransaction = useCallback((id: string, data: Partial<Transaction>) => {
+        setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+    }, []);
+
     return {
         transactions,
         isLoading,
         hasMore,
         loadMore,
-        refresh
+        refresh,
+        removeTransaction,
+        updateTransaction
     };
 };
