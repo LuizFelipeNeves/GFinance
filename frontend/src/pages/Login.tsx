@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Loader2, Mail, Lock, User, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.email('E-mail inválido'),
@@ -27,6 +28,10 @@ const LoginForm = () => {
   const onSubmit = async (data: any) => {
     await new Promise(r => setTimeout(r, 1500));
     console.log('Login:', data);
+    toast('Bem-vindo de volta!', {
+      description: 'Login realizado com sucesso no GFinance',
+      icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+    });
   };
 
   return (
@@ -67,6 +72,10 @@ const RegisterForm = () => {
   const onSubmit = async (data: any) => {
     await new Promise(r => setTimeout(r, 1500));
     console.log('Registro:', data);
+    toast('Conta criada com sucesso!', {
+      description: 'Bem-vindo ao GFinance, sua jornada financeira começa agora.',
+      icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
+    });
   };
 
   return (
