@@ -4,6 +4,7 @@ import { TransactionsTable } from '@/components/features/transactions';
 import { FileImportModal } from '@/components/features/import';
 import { AddTransactionModal } from '@/components/features/transactions/AddTransactionModal';
 import { generateSampleCsv } from '@/utils/csv';
+import { api } from '@/services/api';
 
 const downloadTemplate = () => {
   const csvContent = generateSampleCsv();
@@ -13,6 +14,23 @@ const downloadTemplate = () => {
   link.download = 'modelo_transacoes.csv';
   link.click();
   URL.revokeObjectURL(link.href);
+};
+
+const handleExport = async () => {
+  try {
+    const response = await api.transactions.export();
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'transacoes.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Erro ao exportar:', error);
+  }
 };
 
 export const Transactions = () => {
@@ -35,7 +53,7 @@ export const Transactions = () => {
             <FileDown size={14} />
             <span>Modelo</span>
           </button>
-          <button className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
+          <button onClick={handleExport} className="flex-1 md:flex-none flex items-center gap-2 px-4 py-3 text-[11px] font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
             <Download size={14} />
             <span>Exportar</span>
           </button>

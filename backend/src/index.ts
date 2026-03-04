@@ -363,7 +363,7 @@ app.get('/api/transactions/import/stream', (req: Request, res: Response) => {
 
 // GET /api/transactions/export - Export transactions
 app.get('/api/transactions/export', (req: Request, res: Response) => {
-    const { format = 'csv', type = 'all', search = '', category = '' } = req.query;
+    const { type = 'all', search = '', category = '' } = req.query;
 
     const filters: TransactionFilters = {
         type: type as string,
@@ -375,24 +375,20 @@ app.get('/api/transactions/export', (req: Request, res: Response) => {
 
     const filteredTransactions = filterTransactions(mockData.transactions, filters);
 
-    if (format === 'csv') {
-        const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
-        const csvRows = filteredTransactions.map(t => [
-            t.date,
-            t.type,
-            t.val.toString(),
-            t.cat,
-            `"${t.desc}"`
-        ]);
+    const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
+    const csvRows = filteredTransactions.map(t => [
+        t.date,
+        t.type,
+        t.val.toString(),
+        t.cat,
+        `"${t.desc}"`
+    ]);
 
-        const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\n');
+    const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\n');
 
-        res.setHeader('Content-Type', 'text/csv;charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename=transacoes.csv');
-        res.send(csv);
-    } else {
-        res.json(filteredTransactions);
-    }
+    res.setHeader('Content-Type', 'text/csv;charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=transacoes.csv');
+    res.send(csv);
 });
 
 app.listen(PORT, () => {

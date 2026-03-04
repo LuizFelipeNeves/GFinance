@@ -189,9 +189,8 @@ export const api = {
             });
         },
 
-        export: async (format: 'csv' | 'json' = 'csv', filters: Omit<TransactionFilters, 'page'> = {}): Promise<Response> => {
+        export: async (filters: Omit<TransactionFilters, 'page'> = {}): Promise<Response> => {
             const queryString = buildQueryString({
-                format,
                 type: filters.type || 'all',
                 search: filters.search || '',
                 category: filters.category || '',

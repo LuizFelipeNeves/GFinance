@@ -290,7 +290,9 @@ export const swaggerOptions = {
                     tags: ['Transações'],
                     security: [{ bearerAuth: [] }],
                     parameters: [
-                        { name: 'format', in: 'query', schema: { type: 'string', enum: ['csv', 'json'] } },
+                        { name: 'type', in: 'query', schema: { type: 'string', enum: ['all', 'in', 'out'] } },
+                        { name: 'search', in: 'query', schema: { type: 'string' } },
+                        { name: 'category', in: 'query', schema: { type: 'string' } },
                     ],
                     responses: {
                         200: {
