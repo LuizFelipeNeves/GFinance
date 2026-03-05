@@ -1,5 +1,6 @@
-import type { Transaction } from '../mock';
-import { mockData, fetchMoreTransactions } from '../mock';
+import { TransactionModel, type ITransaction, type Transaction } from '../models/transactionModel';
+
+export type TransactionInput = Omit<Transaction, 'id'>;
 
 export interface TransactionFilter {
     type?: string;
@@ -15,110 +16,266 @@ export interface PaginatedResult<T> {
     total: number;
 }
 
+export interface Stats {
+    balance: { old: number; new: number };
+    income: { old: number; new: number };
+    expenses: { old: number; new: number };
+}
+
+export interface SummaryItem {
+    label: string;
+    val: number;
+}
+
 class TransactionRepository {
     private pageSize = 10;
 
-    getAll(): Transaction[] {
-        return mockData.transactions;
-    }
-
-    getById(id: string): Transaction | undefined {
-        return mockData.transactions.find(t => t.id === id);
-    }
-
-    create(transaction: Omit<Transaction, 'id'>): Transaction {
-        const newTransaction: Transaction = {
-            ...transaction,
-            id: `t-${Date.now()}`
+    private toPlainTransaction(doc: ITransaction): Transaction {
+        return {
+            id: doc._id.toString(),
+            desc: doc.desc,
+            cat: doc.cat,
+            date: doc.date,
+            val: doc.val,
+            type: doc.type
         };
-        mockData.transactions.unshift(newTransaction);
-        return newTransaction;
     }
 
-    update(id: string, transaction: Partial<Transaction>): Transaction | undefined {
-        const index = mockData.transactions.findIndex(t => t.id === id);
-        if (index !== -1) {
-            mockData.transactions[index] = { ...mockData.transactions[index], ...transaction };
-            return mockData.transactions[index];
+    async getAll(): Promise<Transaction[]> {
+        const docs = await TransactionModel.find().sort({ createdAt: -1 }).lean();
+        return docs.map(this.toPlainTransaction);
+    }
+
+    async getById(id: string): Promise<Transaction | undefined> {
+        try {
+            const doc = await TransactionModel.findById(id).lean();
+            if (!doc) return;
+            return this.toPlainTransaction(doc);
+        } catch {
         }
-        return undefined;
     }
 
-    delete(id: string): boolean {
-        const initialLength = mockData.transactions.length;
-        mockData.transactions = mockData.transactions.filter(t => t.id !== id);
-        return mockData.transactions.length < initialLength;
+    async create(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {
+        const doc = await TransactionModel.create(transaction);
+        return this.toPlainTransaction(doc);
     }
 
-    addBatch(transactions: Transaction[]): void {
-        mockData.transactions = [...transactions, ...mockData.transactions];
+    async update(id: string, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
+        try {
+            const doc = await TransactionModel.findByIdAndUpdate(id, transaction, { returnDocument: 'after' }).lean();
+            if (!doc) return;
+            return this.toPlainTransaction(doc);
+        } catch {
+        }
     }
 
-    filter(filter: TransactionFilter, transactions?: Transaction[]): Transaction[] {
-        let filtered = [...(transactions || mockData.transactions)];
+    async delete(id: string): Promise<boolean> {
+        try {
+            const result = await TransactionModel.findByIdAndDelete(id);
+            return result !== null;
+        } catch {
+            return false;
+        }
+    }
+
+    async addBatch(transactions: TransactionInput[]): Promise<void> {
+        if (transactions.length === 0) return;
+        await TransactionModel.insertMany(transactions, { ordered: false });
+    }
+
+    async clear(): Promise<void> {
+    }
+
+    private buildFilterQuery(filter: TransactionFilter): Record<string, unknown> {
+        const query: Record<string, unknown> = {};
 
         if (filter.type && filter.type !== 'all') {
-            filtered = filtered.filter(t => t.type === filter.type);
-        }
-
-        if (filter.dateFrom) {
-            const fromDate = new Date(filter.dateFrom.split('/').reverse().join('-'));
-            filtered = filtered.filter(t => {
-                const tDate = new Date(t.date.split('/').reverse().join('-'));
-                return tDate >= fromDate;
-            });
-        }
-
-        if (filter.dateTo) {
-            const toDate = new Date(filter.dateTo.split('/').reverse().join('-'));
-            filtered = filtered.filter(t => {
-                const tDate = new Date(t.date.split('/').reverse().join('-'));
-                return tDate <= toDate;
-            });
+            query.type = filter.type;
         }
 
         if (filter.search) {
-            const searchLower = filter.search.toLowerCase();
-            filtered = filtered.filter(t =>
-                t.desc.toLowerCase().includes(searchLower) ||
-                t.cat.toLowerCase().includes(searchLower)
-            );
+            query.$or = [
+                { desc: { $regex: filter.search, $options: 'i' } },
+                { cat: { $regex: filter.search, $options: 'i' } }
+            ];
         }
 
-        return filtered;
+        if (filter.dateFrom || filter.dateTo) {
+            query.date = {};
+            if (filter.dateFrom) {
+                const fromDate = filter.dateFrom.split('/').reverse().join('-');
+                (query.date as Record<string, string>).$gte = fromDate;
+            }
+            if (filter.dateTo) {
+                const toDate = filter.dateTo.split('/').reverse().join('-');
+                (query.date as Record<string, string>).$lte = toDate;
+            }
+        }
+
+        return query;
     }
 
-    paginate(page: number, filter: TransactionFilter = {}): PaginatedResult<Transaction> {
-        const filtered = this.filter(filter);
-        const startIndex = (page - 1) * this.pageSize;
-        const endIndex = startIndex + this.pageSize;
-        const paginatedData = filtered.slice(startIndex, endIndex);
-        const hasMore = endIndex < filtered.length;
+    async paginate(page: number, filter: TransactionFilter = {}): Promise<PaginatedResult<Transaction>> {
+        const query = this.buildFilterQuery(filter);
+        const skip = (page - 1) * this.pageSize;
 
-        if (page === 1 && !filter.search && !filter.dateFrom && !filter.dateTo && filter.type === 'all') {
-            const moreTransactions = fetchMoreTransactions(1);
-            mockData.transactions = [...mockData.transactions, ...moreTransactions];
-        }
+        const [data, total] = await Promise.all([
+            TransactionModel.find(query).sort({ date: -1 }).skip(skip).limit(this.pageSize).lean(),
+            TransactionModel.countDocuments(query)
+        ]);
 
         return {
-            data: paginatedData,
-            hasMore,
+            data: data.map(this.toPlainTransaction),
+            hasMore: skip + data.length < total,
             page,
-            total: filtered.length
+            total
         };
     }
 
-    getStats() {
-        return mockData.stats;
+    async getDashboardFull(limit = 8, period: string = 'monthly'): Promise<{
+        stats: Stats;
+        transactions: Transaction[];
+        summary: SummaryItem[];
+    }> {
+        const totalDocs = await TransactionModel.countDocuments();
+
+        if (totalDocs === 0) {
+            return {
+                stats: {
+                    balance: { old: 0, new: 0 },
+                    income: { old: 0, new: 0 },
+                    expenses: { old: 0, new: 0 }
+                },
+                transactions: [],
+                summary: []
+            };
+        }
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const formatDate = (month: number, year: number) => {
+            const m = String(month + 1).padStart(2, '0');
+            return `${year}-${m}-01`;
+        };
+
+        let currentPeriodStart: string;
+        let previousPeriodStart: string;
+        let nextPeriodStart: string;
+        let summaryMatch: Record<string, unknown>;
+
+        if (period === 'yearly') {
+            previousPeriodStart = formatDate(0, currentYear - 1);
+            currentPeriodStart = formatDate(0, currentYear);
+            nextPeriodStart = formatDate(0, currentYear + 1);
+            summaryMatch = { type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
+        } else if (period === 'quarterly') {
+            const currentQuarter = Math.floor(currentMonth / 3);
+            const previousQuarter = currentQuarter === 0 ? 3 : currentQuarter;
+            const previousQuarterYear = currentQuarter === 0 ? currentYear - 1 : currentYear;
+            const currentQuarterMonthStart = currentQuarter * 3;
+            const previousQuarterMonthStart = (previousQuarter - 1) * 3;
+
+            previousPeriodStart = formatDate(previousQuarterMonthStart, previousQuarterYear);
+            currentPeriodStart = formatDate(currentQuarterMonthStart, currentYear);
+            nextPeriodStart = formatDate((currentQuarter + 1) * 3, currentYear);
+            summaryMatch = { type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
+        } else {
+            const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+            previousPeriodStart = formatDate(lastMonth, lastMonthYear);
+            currentPeriodStart = formatDate(currentMonth, currentYear);
+            nextPeriodStart = formatDate((currentMonth + 1) % 12, currentMonth + 1 > 11 ? currentYear + 1 : currentYear);
+            summaryMatch = { type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
+        }
+
+        const result = await TransactionModel.aggregate([
+            {
+                $facet: {
+                    oldStats: [
+                        { $match: { date: { $gte: previousPeriodStart, $lt: currentPeriodStart } } },
+                        {
+                            $group: {
+                                _id: null,
+                                income: { $sum: { $cond: [{ $eq: ['$type', 'in'] }, '$val', 0] } },
+                                expenses: { $sum: { $cond: [{ $eq: ['$type', 'out'] }, '$val', 0] } }
+                            }
+                        }
+                    ],
+                    newStats: [
+                        { $match: { date: { $gte: currentPeriodStart, $lt: nextPeriodStart } } },
+                        {
+                            $group: {
+                                _id: null,
+                                income: { $sum: { $cond: [{ $eq: ['$type', 'in'] }, '$val', 0] } },
+                                expenses: { $sum: { $cond: [{ $eq: ['$type', 'out'] }, '$val', 0] } }
+                            }
+                        }
+                    ],
+                    oldBalance: [
+                        { $match: { date: { $lt: currentPeriodStart } } },
+                        {
+                            $group: {
+                                _id: null,
+                                income: { $sum: { $cond: [{ $eq: ['$type', 'in'] }, '$val', 0] } },
+                                expenses: { $sum: { $cond: [{ $eq: ['$type', 'out'] }, '$val', 0] } }
+                            }
+                        }
+                    ],
+                    newBalance: [
+                        { $match: { date: { $lt: nextPeriodStart } } },
+                        {
+                            $group: {
+                                _id: null,
+                                income: { $sum: { $cond: [{ $eq: ['$type', 'in'] }, '$val', 0] } },
+                                expenses: { $sum: { $cond: [{ $eq: ['$type', 'out'] }, '$val', 0] } }
+                            }
+                        }
+                    ],
+                    summary: [
+                        { $match: summaryMatch },
+                        { $group: { _id: '$cat', val: { $sum: '$val' } } },
+                        { $sort: { val: -1 } },
+                        { $project: { label: '$_id', val: 1, _id: 0 } }
+                    ],
+                    transactions: [
+                        { $match: { date: { $gte: currentPeriodStart, $lt: nextPeriodStart } } },
+                        { $sort: { date: -1 } },
+                        { $limit: limit },
+                        { $project: { _id: 0, id: { $toString: '$_id' }, desc: 1, cat: 1, date: 1, val: 1, type: 1 } }
+                    ]
+                }
+            }
+        ]);
+
+        const { oldStats, newStats, oldBalance, newBalance, summary, transactions } = result[0];
+
+        const old = oldStats[0] || { income: 0, expenses: 0 };
+        const newData = newStats[0] || { income: 0, expenses: 0 };
+        const oldBal = oldBalance[0] || { income: 0, expenses: 0 };
+        const newBal = newBalance[0] || { income: 0, expenses: 0 };
+
+        return {
+            stats: {
+                balance: {
+                    old: oldBal.income - oldBal.expenses,
+                    new: newBal.income - newBal.expenses
+                },
+                income: { old: old.income, new: newData.income },
+                expenses: { old: old.expenses, new: newData.expenses }
+            },
+            transactions: transactions as Transaction[],
+            summary: summary as SummaryItem[]
+        };
     }
 
-    getSummary() {
-        return mockData.summary;
-    }
+    async exportAsCsv(filter: TransactionFilter = {}): Promise<Record<string, unknown>[]> {
+        const query = this.buildFilterQuery(filter);
+        const docs = await TransactionModel.find(query).sort({ date: -1 }).lean();
 
-    exportAsCsv(filter: TransactionFilter = {}): Record<string, unknown>[] {
-        const filtered = this.filter(filter);
-        return filtered.map(t => ({
+        return docs.map(t => ({
             data: t.date,
             tipo: t.type,
             valor: t.val,

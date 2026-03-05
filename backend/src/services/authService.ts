@@ -23,8 +23,8 @@ export interface AuthResult {
 }
 
 class AuthService {
-    login(input: LoginInput): AuthResult {
-        const user = userRepository.validateCredentials(input.email, input.password);
+    async login(input: LoginInput): Promise<AuthResult> {
+        const user = await userRepository.validateCredentials(input.email, input.password);
 
         if (!user) {
             return { success: false, message: 'E-mail ou senha inválidos' };
@@ -41,14 +41,14 @@ class AuthService {
         };
     }
 
-    register(input: RegisterInput): AuthResult {
-        const existingUser = userRepository.getByEmail(input.email);
+    async register(input: RegisterInput): Promise<AuthResult> {
+        const existingUser = await userRepository.getByEmail(input.email);
 
         if (existingUser) {
             return { success: false, message: 'E-mail já cadastrado' };
         }
 
-        const newUser = userRepository.create({
+        const newUser = await userRepository.create({
             name: input.name,
             email: input.email,
             password: input.password

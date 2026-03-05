@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import type { Request, Response, NextFunction } from 'express';
 
-export const validate = <T extends z.ZodSchema>(schema: T) => {
+export const validate = <T extends z.ZodSchema>(schema: T, source: 'body' | 'query' = 'body') => {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
-            schema.parse(req.body);
+            const data = source === 'query' ? req.query : req.body;
+            schema.parse(data);
             next();
         } catch (error) {
             if (error instanceof z.ZodError) {

@@ -34,8 +34,20 @@ export const importRowsSchema = z.array(z.object({
     type: z.string().optional(),
 }));
 
+export const exportSchema = z.object({}).strict();
+
+export const importStreamSchema = z.object({
+    jobId: z.string().min(1, 'Job ID é obrigatório'),
+});
+
+export const dashboardSchema = z.object({
+    period: z.enum(['monthly', 'quarterly', 'yearly']).optional().default('monthly'),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type TransactionInput = z.infer<typeof transactionSchema>;
 export type TransactionUpdateInput = z.infer<typeof transactionUpdateSchema>;
 export type ImportRowsInput = z.infer<typeof importRowsSchema>;
+export type ExportInput = z.infer<typeof exportSchema>;
+export type ImportStreamInput = z.infer<typeof importStreamSchema>;

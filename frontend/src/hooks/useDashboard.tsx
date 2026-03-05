@@ -1,12 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, type DashboardData } from '@/services/api';
 
-const DASHBOARD_KEY = ['dashboard'];
-
-export const useDashboard = () => {
+export const useDashboard = (period: string = 'monthly') => {
     const dashboardQuery = useQuery<DashboardData>({
-        queryKey: DASHBOARD_KEY,
-        queryFn: () => api.dashboard.get(),
+        queryKey: ['dashboard', period],
+        queryFn: () => api.dashboard.get(period),
     });
 
     return {

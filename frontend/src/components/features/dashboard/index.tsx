@@ -6,3 +6,5 @@ export { TransactionListSkeleton } from './TransactionListSkeleton';
 
 export { SummaryChart } from './SummaryChart';
 export { SummaryChartSkeleton } from './SummaryChartSkeleton';
+
+export { PeriodSelector } from './PeriodSelector';

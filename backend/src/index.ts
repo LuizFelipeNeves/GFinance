@@ -1,7 +1,17 @@
 import { app } from './app';
+import { connectMongoDB } from './db';
+import { createImportWorker } from './jobs';
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
-    console.log(`🚀 GFinance API running on http://localhost:${PORT}`);
-});
+const start = async () => {
+    await connectMongoDB();
+
+    createImportWorker();
+
+    app.listen(PORT, () => {
+        console.log(`🚀 GFinance API running on http://localhost:${PORT}`);
+    });
+};
+
+start();

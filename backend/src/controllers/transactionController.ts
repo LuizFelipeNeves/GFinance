@@ -2,15 +2,16 @@ import type { Request, Response } from 'express';
 import { transactionService } from '../services/transactionService';
 import { importJobRepository } from '../data/importJobRepository';
 import { saveFile } from '../utils';
+import { getImportQueue } from '../jobs';
 
-export const getTransactions = (req: Request, res: Response) => {
+export const getTransactions = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const type = (req.query.type as string) || 'all';
     const search = (req.query.search as string) || '';
     const dateFrom = (req.query.dateFrom as string) || '';
     const dateTo = (req.query.dateTo as string) || '';
 
-    const result = transactionService.getTransactions(page, { type, search, dateFrom, dateTo });
+    const result = await transactionService.getTransactions(page, { type, search, dateFrom, dateTo });
     res.json({
         transactions: result.data,
         hasMore: result.hasMore,
@@ -19,26 +20,26 @@ export const getTransactions = (req: Request, res: Response) => {
     });
 };
 
-export const createTransaction = (req: Request, res: Response) => {
+export const createTransaction = async (req: Request, res: Response) => {
     const { desc, cat, date, val, type } = req.body as { desc: string; cat: string; date: string; val: string; type: 'in' | 'out' };
-    const transaction = transactionService.createTransaction({ desc, cat, date, val: parseFloat(val), type });
+    const transaction = await transactionService.createTransaction({ desc, cat, date, val: parseFloat(val), type });
     res.status(201).json(transaction);
 };
 
-export const updateTransaction = (req: Request, res: Response) => {
+export const updateTransaction = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { desc, cat, date, val, type } = req.body as { desc: string; cat: string; date: string; val: string; type: 'in' | 'out' };
-    const transaction = transactionService.updateTransaction(id, { desc, cat, date, val: parseFloat(val), type });
+    const transaction = await transactionService.updateTransaction(id, { desc, cat, date, val: parseFloat(val), type });
     res.json(transaction || { id, desc, cat, date, val, type });
 };
 
-export const deleteTransaction = (req: Request, res: Response) => {
+export const deleteTransaction = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
-    transactionService.deleteTransaction(id);
+    await transactionService.deleteTransaction(id);
     res.json({ success: true, id });
 };
 
-export const importFile = (req: Request, res: Response) => {
+export const importFile = async (req: Request, res: Response) => {
     if (!req.file) {
         res.status(400).json({ success: false, message: 'Nenhum arquivo enviado' });
         return;
@@ -48,8 +49,9 @@ export const importFile = (req: Request, res: Response) => {
     const fileContent = req.file.buffer.toString('utf-8');
     const filePath = saveFile(fileContent, userId);
 
-    const job = importJobRepository.create({ userId, filePath });
-    transactionService.processImport(job.id);
+    const job = await importJobRepository.create({ userId, filePath });
+    const queue = getImportQueue();
+    await queue.add('import', { jobId: job.id, filePath });
     res.json({ success: true, jobId: job.id, message: 'Importação iniciada' });
 };
 
@@ -63,8 +65,8 @@ export const getImportStream = (req: Request, res: Response) => {
 
     res.write(`data: ${JSON.stringify({ type: 'connected', jobId })}\n\n`);
 
-    const interval = setInterval(() => {
-        const job = importJobRepository.getById(jobId);
+    const interval = setInterval(async () => {
+        const job = await importJobRepository.getById(jobId);
 
         if (!job) {
             res.write(`data: ${JSON.stringify({ type: 'error', message: 'Job não encontrado' })}\n\n`);
@@ -91,8 +93,8 @@ export const getImportStream = (req: Request, res: Response) => {
     res.on('close', () => clearInterval(interval));
 };
 
-export const exportTransactions = (_req: Request, res: Response) => {
-    const csv = transactionService.exportToCsv();
+export const exportTransactions = async (_req: Request, res: Response) => {
+    const csv = await transactionService.exportToCsv();
 
     res.setHeader('Content-Type', 'text/csv;charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=transacoes.csv');

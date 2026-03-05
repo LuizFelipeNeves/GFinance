@@ -1,11 +1,12 @@
 import { Wallet, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useDashboard } from '@/hooks/useDashboard';
-import { StatCard, StatCardSkeleton, TransactionList, TransactionListSkeleton, SummaryChart, SummaryChartSkeleton } from '@/components/features/dashboard';
+import { StatCard, StatCardSkeleton, TransactionList, TransactionListSkeleton, SummaryChart, SummaryChartSkeleton, PeriodSelector } from '@/components/features/dashboard';
 
 export const Dashboard = () => {
-    const { data, isLoading, error } = useDashboard();
+    const [period, setPeriod] = useState('monthly');
+    const { data, isLoading, error } = useDashboard(period);
     const { stats, transactions, summary } = data || {};
     const toastShown = useRef(false);
 
@@ -21,9 +22,12 @@ export const Dashboard = () => {
 
     return (
         <div className="flex flex-col max-w-[1400px] mx-auto gap-4 sm:gap-6">
-            <header className="flex flex-col gap-1">
-                <div className={`text-lg sm:text-xl font-bold text-slate-900 tracking-tight transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                    Visão Geral
+            <header className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <div className={`text-lg sm:text-xl font-bold text-slate-900 tracking-tight transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                        Visão Geral
+                    </div>
+                    <PeriodSelector value={period} onChange={setPeriod} isLoading={isLoading} />
                 </div>
                 <div className={`text-xs text-slate-400 font-medium transition-opacity duration-500 delay-100 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                     Relatório de desempenho financeiro atualizado.

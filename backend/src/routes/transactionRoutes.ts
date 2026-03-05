@@ -10,7 +10,7 @@ import {
     getTemplate
 } from '../controllers/transactionController';
 import { validate, uploadMiddleware } from '../middleware';
-import { transactionSchema, transactionUpdateSchema } from '../validation';
+import { transactionSchema, transactionUpdateSchema, exportSchema, importStreamSchema } from '../validation';
 
 const router = Router();
 
@@ -19,8 +19,8 @@ router.post('/', validate(transactionSchema), createTransaction);
 router.put('/:id', validate(transactionUpdateSchema), updateTransaction);
 router.delete('/:id', deleteTransaction);
 router.post('/import-file', uploadMiddleware.single('file'), importFile);
-router.get('/import/stream', getImportStream);
-router.get('/export', exportTransactions);
+router.get('/import/stream', validate(importStreamSchema, 'query'), getImportStream);
+router.get('/export', validate(exportSchema), exportTransactions);
 router.get('/import/template', getTemplate);
 
 export default router;

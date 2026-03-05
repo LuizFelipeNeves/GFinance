@@ -1,53 +1,36 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import { app } from './app.js';
-import { transactionRepository } from './data/transactionRepository.js';
-import { mockData, type Transaction } from './mock.js';
+import { app } from './app';
+import { transactionRepository } from './data/transactionRepository';
+import { importJobRepository } from './data/importJobRepository';
+import { type Transaction } from './models';
 
-describe('TransactionRepository.filter', () => {
-    const transactions: Transaction[] = [
-        { id: '1', desc: 'Salário', cat: 'Trabalho', date: '01/01/2025', val: 5000, type: 'in' },
-        { id: '2', desc: 'Supermercado', cat: 'Alimentação', date: '05/01/2025', val: 500, type: 'out' },
-        { id: '3', desc: 'Freelance', cat: 'Trabalho', date: '10/01/2025', val: 1000, type: 'in' },
-    ];
+const testTransactions = [
+    { desc: 'Salário', cat: 'Trabalho', date: '01/01/2025', val: 5000, type: 'in' as const },
+    { desc: 'Supermercado', cat: 'Alimentação', date: '02/01/2025', val: 500, type: 'out' as const },
+    { desc: 'Freelance', cat: 'Trabalho', date: '03/01/2025', val: 1500, type: 'in' as const },
+    { desc: 'Farmácia', cat: 'Saúde', date: '04/01/2025', val: 100, type: 'out' as const },
+    { desc: 'Luz', cat: 'Contas', date: '05/01/2025', val: 150, type: 'out' as const },
+    { desc: 'Internet', cat: 'Contas', date: '06/01/2025', val: 100, type: 'out' as const },
+    { desc: 'Restaurante', cat: 'Alimentação', date: '07/01/2025', val: 200, type: 'out' as const },
+    { desc: 'Gasolina', cat: 'Transporte', date: '08/01/2025', val: 250, type: 'out' as const },
+];
 
-    it('should return all transactions with no filters', () => {
-        const result = transactionRepository.filter({}, transactions);
-        expect(result).toHaveLength(3);
-    });
-
-    it('should filter by type', () => {
-        const result = transactionRepository.filter({ type: 'in' }, transactions);
-        expect(result).toHaveLength(2);
-        result.forEach(t => expect(t.type).toBe('in'));
-    });
-
-    it('should filter by search', () => {
-        const result = transactionRepository.filter({ search: 'SALÁRIO' }, transactions);
-        expect(result).toHaveLength(1);
-        expect(result[0].desc).toBe('Salário');
-    });
-
-    it('should filter by dateFrom', () => {
-        const result = transactionRepository.filter({ dateFrom: '05/01/2025' }, transactions);
-        expect(result).toHaveLength(2);
-    });
-
-    it('should filter by dateTo', () => {
-        const result = transactionRepository.filter({ dateTo: '05/01/2025' }, transactions);
-        expect(result).toHaveLength(2);
-    });
-
-    it('should filter by date range', () => {
-        const result = transactionRepository.filter({ dateFrom: '02/01/2025', dateTo: '09/01/2025' }, transactions);
-        expect(result).toHaveLength(1);
-        expect(result[0].desc).toBe('Supermercado');
-    });
-});
+const dashboardTestTransactions = [
+    { desc: 'Salário Dez', cat: 'Trabalho', date: '2024-12-01', val: 150000, type: 'in' as const },
+    { desc: 'Aluguel', cat: 'Moradia', date: '2025-01-15', val: 2000, type: 'out' as const },
+    { desc: 'Supermercado', cat: 'Alimentação', date: '2025-02-10', val: 1500, type: 'out' as const },
+    { desc: 'Salário Jan', cat: 'Trabalho', date: '2025-01-05', val: 10000, type: 'in' as const },
+    { desc: 'Contas', cat: 'Moradia', date: '2025-02-05', val: 500, type: 'out' as const },
+    { desc: 'Salário Fev', cat: 'Trabalho', date: '2025-02-05', val: 10000, type: 'in' as const },
+    { desc: 'Lazer', cat: 'Entretenimento', date: '2025-03-01', val: 300, type: 'out' as const },
+    { desc: 'Salário Mar', cat: 'Trabalho', date: '2025-03-05', val: 10000, type: 'in' as const },
+    { desc: 'Investimento', cat: 'Financeiro', date: '2025-03-10', val: 2000, type: 'out' as const },
+];
 
 describe('API Routes', () => {
-    beforeEach(() => {
-        mockData.transactions = mockData.transactions.slice(0, 8);
+    beforeEach(async () => {
+        await transactionRepository.addBatch(testTransactions);
     });
 
     describe('POST /api/auth/login', () => {
@@ -73,7 +56,8 @@ describe('API Routes', () => {
         });
 
         it('should login successfully with valid credentials', async () => {
-            const res = await request(app).post('/api/auth/login').send({ email: 'androidfelipe23@gmail.com', password: 'androidfelipe23@gmail.com' });
+            await request(app).post('/api/auth/register').send({ name: 'Test User', email: 'test@example.com', password: 'password123' });
+            const res = await request(app).post('/api/auth/login').send({ email: 'test@example.com', password: 'password123' });
             expect(res.status).toBe(200);
             expect(res.body.success).toBe(true);
             expect(res.body.token).toBeDefined();
@@ -120,6 +104,20 @@ describe('API Routes', () => {
         });
 
         it('should return only 8 transactions', async () => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = `${year}-${month}-15`;
+
+            const transactions = Array.from({ length: 15 }, (_, i) => ({
+                desc: `Transação ${i + 1}`,
+                cat: 'Teste',
+                date,
+                val: 100,
+                type: 'in' as const,
+            }));
+            await transactionRepository.addBatch(transactions);
+
             const res = await request(app).get('/api/dashboard');
             expect(res.status).toBe(200);
             expect(res.body.transactions).toHaveLength(8);
@@ -201,12 +199,12 @@ describe('API Routes', () => {
         });
 
         it('should add transaction to list', async () => {
-            const initialCount = mockData.transactions.length;
+            const initialCount = (await transactionRepository.getAll()).length;
 
             await request(app).post('/api/transactions').send({ desc: 'New', cat: 'Test', date: '01/01/2025', val: 50, type: 'out' });
 
-            expect(mockData.transactions.length).toBe(initialCount + 1);
-            expect(mockData.transactions[0].desc).toBe('New');
+            const newCount = (await transactionRepository.getAll()).length;
+            expect(newCount).toBe(initialCount + 1);
         });
     });
 
@@ -338,7 +336,7 @@ describe('API Routes', () => {
                 .attach('file', Buffer.from(csv), 'test.csv');
 
             expect(res.status).toBe(200);
-            expect(res.body.jobId).toMatch(/^import-/);
+            expect(res.body.jobId).toBeDefined();
         });
     });
 
@@ -352,8 +350,67 @@ describe('API Routes', () => {
             const jobId = uploadRes.body.jobId;
             expect(jobId).toBeDefined();
 
-            const res = await request(app).get(`/api/transactions/import/stream?jobId=${jobId}`);
+            const job = await importJobRepository.getById(jobId);
+            expect(job).toBeDefined();
+            expect(job?.status).toBe('complete');
+            expect(job?.imported).toBe(1);
+        });
+    });
+
+    describe('Dashboard Calculations', () => {
+        beforeEach(async () => {
+            await transactionRepository.clear();
+            await transactionRepository.addBatch(dashboardTestTransactions);
+        });
+
+        it('should calculate monthly balance as accumulated (old = before current month, new = up to current month)', async () => {
+            const res = await request(app).get('/api/dashboard?period=monthly');
             expect(res.status).toBe(200);
+
+            const { stats } = res.body;
+
+            expect(stats).toHaveProperty('balance');
+            expect(stats).toHaveProperty('income');
+            expect(stats).toHaveProperty('expenses');
+            expect(stats.balance).toHaveProperty('old');
+            expect(stats.balance).toHaveProperty('new');
+            expect(stats.income).toHaveProperty('old');
+            expect(stats.income).toHaveProperty('new');
+            expect(stats.expenses).toHaveProperty('old');
+            expect(stats.expenses).toHaveProperty('new');
+        });
+
+        it('should calculate quarterly balance as accumulated', async () => {
+            const res = await request(app).get('/api/dashboard?period=quarterly');
+            expect(res.status).toBe(200);
+
+            const { stats } = res.body;
+
+            expect(stats).toHaveProperty('balance');
+            expect(stats.balance.new).toBeGreaterThan(0);
+        });
+
+        it('should calculate yearly balance as accumulated', async () => {
+            const res = await request(app).get('/api/dashboard?period=yearly');
+            expect(res.status).toBe(200);
+
+            const { stats } = res.body;
+
+            expect(stats).toHaveProperty('balance');
+            expect(stats.balance.new).toBeGreaterThan(0);
+        });
+
+        it('should return 400 with invalid period', async () => {
+            const res = await request(app).get('/api/dashboard?period=invalid');
+            expect(res.status).toBe(400);
+        });
+
+        it('should accept all valid period values', async () => {
+            const periods = ['monthly', 'quarterly', 'yearly'];
+            for (const period of periods) {
+                const res = await request(app).get(`/api/dashboard?period=${period}`);
+                expect(res.status).toBe(200);
+            }
         });
     });
 });

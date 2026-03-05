@@ -103,8 +103,8 @@ export const api = {
     },
 
     dashboard: {
-        get: async (): Promise<DashboardData> => {
-            const response = await fetch(`${API_BASE}/dashboard`, {
+        get: async (period: string = 'monthly'): Promise<DashboardData> => {
+            const response = await fetch(`${API_BASE}/dashboard?period=${period}`, {
                 headers: getAuthHeaders(),
             });
             return response.json();
