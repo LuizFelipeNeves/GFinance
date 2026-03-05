@@ -1,6 +1,7 @@
-import { UserModel, type User } from '../models/userModel';
+import { UserModel, type User, type UserWithPassword } from '../models/userModel';
+import { hashService } from '../services/hashService';
 
-export type UserInput = Omit<User, 'id'>;
+export type UserInput = Omit<User, 'id'> & { password: string };
 
 class UserRepository {
     async getAll(): Promise<User[]> {
@@ -25,13 +26,18 @@ class UserRepository {
     }
 
     async create(user: UserInput): Promise<User> {
-        const doc = await UserModel.create(user);
+        const hashedPassword = await hashService.hash(user.password);
+        const doc = await UserModel.create({ ...user, password: hashedPassword });
         return this.toPlainUser(doc);
     }
 
     async validateCredentials(email: string, password: string): Promise<User | undefined> {
-        const doc = await UserModel.findOne({ email, password }).lean();
+        const doc = await UserModel.findOne({ email }).lean() as (UserWithPassword & { _id: { toString(): string } } & Omit<User, 'id'>) | null;
         if (!doc) return;
+
+        const isValid = await hashService.compare(password, doc.password);
+        if (!isValid) return;
+
         return this.toPlainUser(doc);
     }
 
@@ -39,8 +45,7 @@ class UserRepository {
         return {
             id: doc._id.toString(),
             name: doc.name,
-            email: doc.email,
-            password: doc.password
+            email: doc.email
         };
     }
 }

@@ -1,16 +1,34 @@
 import type { Transaction } from '@/data/types';
-import { GetAuthToken, SetAuthToken, SetAuthUser } from '@/utils/token';
+import { GetAuthToken, SetAuthToken, SetAuthUser, RemoveAuthToken } from '@/utils/token';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export const API_BASE = `${API_URL}/api`;
 
-const getAuthHeaders = (): HeadersInit => {
+const handleUnauthorized = () => {
+    RemoveAuthToken();
+    window.location.href = '/login';
+};
+
+const fetchApi = async <T = unknown>(url: string, options: RequestInit = {}): Promise<T> => {
     const token = GetAuthToken();
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+    };
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Unauthorized');
     }
-    return headers;
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
 };
 
 export interface DashboardData {
@@ -75,12 +93,10 @@ const buildQueryString = (params: Record<string, string | number | undefined>): 
 export const api = {
     auth: {
         login: async (email: string, password: string): Promise<AuthResponse> => {
-            const response = await fetch(`${API_BASE}/auth/login`, {
+            const data = await fetchApi<AuthResponse>(`${API_BASE}/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
-            const data = await response.json();
             if (data.token && data.user) {
                 SetAuthToken(data.token);
                 SetAuthUser(data.user);
@@ -88,12 +104,10 @@ export const api = {
             return data;
         },
         register: async (name: string, email: string, password: string): Promise<AuthResponse> => {
-            const response = await fetch(`${API_BASE}/auth/register`, {
+            const data = await fetchApi<AuthResponse>(`${API_BASE}/auth/register`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password }),
             });
-            const data = await response.json();
             if (data.token && data.user) {
                 SetAuthToken(data.token);
                 SetAuthUser(data.user);
@@ -104,10 +118,7 @@ export const api = {
 
     dashboard: {
         get: async (period: string = 'monthly'): Promise<DashboardData> => {
-            const response = await fetch(`${API_BASE}/dashboard?period=${period}`, {
-                headers: getAuthHeaders(),
-            });
-            return response.json();
+            return fetchApi(`${API_BASE}/dashboard?period=${period}`);
         },
     },
 
@@ -120,36 +131,27 @@ export const api = {
                 dateFrom: filters.dateFrom || '',
                 dateTo: filters.dateTo || '',
             });
-            const response = await fetch(`${API_BASE}/transactions?${queryString}`, {
-                headers: getAuthHeaders(),
-            });
-            return response.json();
+            return fetchApi(`${API_BASE}/transactions?${queryString}`);
         },
 
         create: async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-            const response = await fetch(`${API_BASE}/transactions`, {
+            return fetchApi(`${API_BASE}/transactions`, {
                 method: 'POST',
-                headers: getAuthHeaders(),
                 body: JSON.stringify(transaction),
             });
-            return response.json();
         },
 
         update: async (id: string, transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-            const response = await fetch(`${API_BASE}/transactions/${id}`, {
+            return fetchApi(`${API_BASE}/transactions/${id}`, {
                 method: 'PUT',
-                headers: getAuthHeaders(),
                 body: JSON.stringify(transaction),
             });
-            return response.json();
         },
 
         delete: async (id: string): Promise<{ success: boolean; id: string }> => {
-            const response = await fetch(`${API_BASE}/transactions/${id}`, {
+            return fetchApi(`${API_BASE}/transactions/${id}`, {
                 method: 'DELETE',
-                headers: getAuthHeaders(),
             });
-            return response.json();
         },
 
         importFile: (file: File, onProgress?: (progress: UploadProgress) => void): Promise<ImportResponse> => {
@@ -176,7 +178,10 @@ export const api = {
                 };
 
                 xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
+                    if (xhr.status === 401) {
+                        handleUnauthorized();
+                        reject(new Error('Unauthorized'));
+                    } else if (xhr.status >= 200 && xhr.status < 300) {
                         resolve(JSON.parse(xhr.responseText));
                     } else {
                         reject(new Error('Upload failed'));
@@ -189,15 +194,28 @@ export const api = {
         },
 
         export: async (): Promise<Response> => {
-            return fetch(`${API_BASE}/transactions/export`, {
-                headers: getAuthHeaders(),
+            const response = await fetch(`${API_BASE}/transactions/export`, {
+                headers: { Authorization: `Bearer ${GetAuthToken()}` },
             });
+            if (response.status === 401) {
+                handleUnauthorized();
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response;
         },
 
         downloadTemplate: async (): Promise<void> => {
             const response = await fetch(`${API_BASE}/transactions/import/template`, {
-                headers: getAuthHeaders(),
+                headers: { Authorization: `Bearer ${GetAuthToken()}` },
             });
+            if (response.status === 401) {
+                handleUnauthorized();
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');

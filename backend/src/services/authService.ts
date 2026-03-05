@@ -1,4 +1,5 @@
 import { userRepository } from '../data/userRepository';
+import { jwtService } from './jwtService';
 
 export interface LoginInput {
     email: string;
@@ -30,9 +31,14 @@ class AuthService {
             return { success: false, message: 'E-mail ou senha inválidos' };
         }
 
+        const token = jwtService.sign({
+            userId: user.id,
+            email: user.email
+        });
+
         return {
             success: true,
-            token: 'mock-jwt-token-' + Date.now(),
+            token,
             user: {
                 id: user.id,
                 name: user.name,
@@ -54,10 +60,15 @@ class AuthService {
             password: input.password
         });
 
+        const token = jwtService.sign({
+            userId: newUser.id,
+            email: newUser.email
+        });
+
         return {
             success: true,
             message: 'Conta criada com sucesso',
-            token: 'mock-jwt-token-' + Date.now(),
+            token,
             user: {
                 id: newUser.id,
                 name: newUser.name,

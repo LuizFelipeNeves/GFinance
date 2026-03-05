@@ -33,6 +33,7 @@ services:
       MONGODB_URI: mongodb://mongodb:27017/gfinance
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-gfinance-secret-key}
     volumes:
       - uploads:/app/uploads
     depends_on:
