@@ -1,7 +1,8 @@
 import type { Transaction } from '@/data/types';
 import { GetAuthToken, SetAuthToken, SetAuthUser } from '@/utils/token';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_BASE = `${API_URL}/api`;
 
 const getAuthHeaders = (): HeadersInit => {
     const token = GetAuthToken();

@@ -1,4 +1,4 @@
-import { useUpload } from '@/hooks/useUpload';
+import { useUpload, PROGRESS } from '@/hooks/useUpload';
 import { BaseModal } from '@/components/shared/BaseModal';
 import { ModalHeader } from './ModalHeader';
 import { DropZone } from './DropZone';
@@ -46,9 +46,12 @@ export const FileImportModal = ({ isOpen, onClose }: Props) => {
           />
         )}
         {step === 'validating' && (
-          <ProcessingState progress={30} currentTask="Validando estrutura do arquivo..." />
+          <ProcessingState progress={PROGRESS.validating} currentTask="Validando estrutura do arquivo..." />
         )}
-        {(step === 'uploading' || step === 'processing') && (
+        {step === 'uploading' && (
+          <ProcessingState progress={PROGRESS.uploading} currentTask={currentTask} />
+        )}
+        {(step === 'processing') && (
           <ProcessingState progress={progress} currentTask={currentTask} />
         )}
         {step === 'success' && <SuccessState />}

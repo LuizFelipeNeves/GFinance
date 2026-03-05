@@ -342,10 +342,8 @@ app.get('/api/transactions/import/stream', (req: Request, res: Response) => {
         const message = {
             type: job.status === 'complete' ? 'complete' : 'progress',
             progress: job.progress,
-            message: job.status === 'complete'
-                ? `${job.imported} transações importadas`
-                : `Processando ${job.progress}%...`,
-            imported: job.imported
+            imported: job.imported,
+            message: job.status === 'complete' ? `${job.imported} transações importadas` : undefined
         };
 
         res.write(`data: ${JSON.stringify(message)}\n\n`);

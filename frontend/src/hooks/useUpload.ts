@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { api, type UploadProgress } from '@/services/api';
+import { api } from '@/services/api';
+import { API_BASE } from '@/services/api';
 import { useEventSource, type SseMessage } from '@/hooks/useEventSource';
 import { validateFileExtension, validateCsvStructure, type CsvValidationResult } from '@/utils/csv';
 
@@ -19,29 +20,40 @@ interface UseUploadReturn {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+export const PROGRESS = {
+    validating: 10,
+    uploading: 30,
+    processingStart: 30,
+} as const;
+
 export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
     const [step, setStep] = useState<UploadStep>('idle');
     const [progress, setProgress] = useState(0);
     const [currentTask, setCurrentTask] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [validationResult, setValidationResult] = useState<CsvValidationResult | null>(null);
+    const [importedCount, setImportedCount] = useState(0);
     const queryClient = useQueryClient();
 
     const handleSseProgress = useCallback((data: SseMessage) => {
         if (data.progress !== undefined) {
-            setProgress(data.progress);
+            const mappedProgress = Math.round((data.progress / 100) * 70 + 30);
+            setProgress(mappedProgress);
+            setCurrentTask(`Processando ${mappedProgress}%...`);
         }
-        if (data.message) {
-            setCurrentTask(data.message);
+        if (data.imported !== undefined) {
+            setImportedCount(data.imported);
         }
     }, []);
 
-    const handleSseComplete = useCallback(() => {
+    const handleSseComplete = useCallback((data: SseMessage) => {
+        const count = data.imported || importedCount;
+        setCurrentTask(`${count} transações importadas`);
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         setStep('success');
         onSuccess?.();
-    }, [onSuccess, queryClient]);
+    }, [onSuccess, queryClient, importedCount]);
 
     const handleSseError = useCallback((error: string) => {
         setStep('error');
@@ -82,7 +94,7 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
 
         setFile(selectedFile);
         setStep('validating');
-        setProgress(0);
+        setProgress(PROGRESS.validating);
         setCurrentTask('Validando arquivo...');
         setValidationResult(null);
 
@@ -96,12 +108,10 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
             }
 
             setStep('uploading');
-            setProgress(0);
+            setProgress(PROGRESS.uploading);
             setCurrentTask('Enviando arquivo...');
 
-            const response = await api.transactions.importFile(selectedFile, (uploadProgress: UploadProgress) => {
-                setProgress(uploadProgress.percent);
-            });
+            const response = await api.transactions.importFile(selectedFile);
 
             if (!response.success) {
                 setStep('error');
@@ -111,12 +121,12 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
                 return;
             }
 
-            setProgress(90);
+            setProgress(PROGRESS.processingStart);
             setStep('processing');
             setCurrentTask('Processando transações...');
 
             if (response.jobId) {
-                connectSse(`http://localhost:3001/api/transactions/import/stream?jobId=${response.jobId}`);
+                connectSse(`${API_BASE}/transactions/import/stream?jobId=${response.jobId}`);
             }
         } catch (error) {
             console.error('Error uploading file:', error);
