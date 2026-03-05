@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
+import { logger } from '../utils';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/gfinance';
 
 export const connectMongoDB = async (): Promise<void> => {
     try {
         await mongoose.connect(MONGODB_URI);
-        console.log('MongoDB connected');
+        logger.info('MongoDB connected');
     } catch (error) {
-        console.error('MongoDB connection error:', error);
+        logger.error('MongoDB connection error:', error as Error);
         process.exit(1);
     }
 };

@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { logger } from '../utils';
 
 let _redis: Redis | null = null;
 
@@ -13,7 +14,7 @@ const createRedis = (): Redis => {
         lazyConnect: true,
         retryStrategy: (times) => {
             if (times > 3) {
-                console.error('Redis connection failed');
+                logger.error('Redis connection failed');
                 return null;
             }
             return Math.min(times * 100, 3000);
@@ -26,11 +27,11 @@ export const getRedis = (): Redis => {
         _redis = createRedis();
 
         _redis.on('connect', () => {
-            console.log('Redis connected');
+            logger.info('Redis connected');
         });
 
         _redis.on('error', (err) => {
-            console.error('Redis error:', err);
+            logger.error('Redis error:', err);
         });
     }
     return _redis;

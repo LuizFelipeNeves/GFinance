@@ -1,5 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { processImportJob } from '../services/importService';
+import { logger } from '../utils';
 
 export const IMPORT_QUEUE_NAME = 'import-transactions';
 
@@ -46,11 +47,11 @@ export const createImportWorker = (): Worker => {
         );
 
         _worker.on('completed', (job) => {
-            console.log(`Job ${job.id} completed`);
+            logger.info(`Job ${job.id} completed`);
         });
 
         _worker.on('failed', (job, err) => {
-            console.error(`Job ${job?.id} failed:`, err.message);
+            logger.error(`Job ${job?.id} failed:`, err);
         });
     }
 

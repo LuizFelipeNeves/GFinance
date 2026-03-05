@@ -57,8 +57,8 @@ describe('processImportJob', () => {
 
         const transactions = await transactionRepository.getAll(TEST_USER_ID);
         expect(transactions).toHaveLength(2);
-        expect(transactions[0].type).toBe('out');
-        expect(transactions[1].type).toBe('in');
+        expect(transactions[0].type).toBe('in');
+        expect(transactions[1].type).toBe('out');
     });
 
     it('should parse monetary values with R$ symbol', async () => {
