@@ -26,7 +26,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 interface TransactionFilters {
     type?: string;
     search?: string;
-    category?: string;
     dateFrom?: string;
     dateTo?: string;
 }
@@ -37,12 +36,6 @@ const filterTransactions = (transactions: Transaction[], filters: TransactionFil
 
     if (filters.type && filters.type !== 'all') {
         filtered = filtered.filter(t => t.type === filters.type);
-    }
-
-    if (filters.category) {
-        filtered = filtered.filter(t =>
-            t.cat.toLowerCase().includes(filters.category!.toLowerCase())
-        );
     }
 
     if (filters.dateFrom) {
@@ -64,7 +57,7 @@ const filterTransactions = (transactions: Transaction[], filters: TransactionFil
     if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         filtered = filtered.filter(t =>
-            t.desc.toLowerCase().includes(searchLower)
+            t.desc.toLowerCase().includes(searchLower) || t.cat.toLowerCase().includes(searchLower)
         );
     }
 
@@ -148,7 +141,6 @@ app.get('/api/transactions', (req: Request, res: Response) => {
         page = 1,
         type = 'all',
         search = '',
-        category = '',
         dateFrom = '',
         dateTo = ''
     } = req.query;
@@ -157,7 +149,6 @@ app.get('/api/transactions', (req: Request, res: Response) => {
     const filters: TransactionFilters = {
         type: type as string,
         search: search as string,
-        category: category as string,
         dateFrom: dateFrom as string,
         dateTo: dateTo as string
     };
@@ -171,7 +162,7 @@ app.get('/api/transactions', (req: Request, res: Response) => {
 
     let hasMore = endIndex < filteredTransactions.length;
 
-    if (pageNum === 1 && !search && !category && !dateFrom && !dateTo && type === 'all') {
+    if (pageNum === 1 && !search && !dateFrom && !dateTo && type === 'all') {
         const moreTransactions = fetchMoreTransactions(1);
         mockData.transactions = [...mockData.transactions, ...moreTransactions];
         hasMore = true;
@@ -377,12 +368,11 @@ app.get('/api/transactions/import/stream', (req: Request, res: Response) => {
 
 // GET /api/transactions/export - Export transactions
 app.get('/api/transactions/export', (req: Request, res: Response) => {
-    const { type = 'all', search = '', category = '' } = req.query;
+    const { type = 'all', search = '' } = req.query;
 
     const filters: TransactionFilters = {
         type: type as string,
         search: search as string,
-        category: category as string,
         dateFrom: '',
         dateTo: ''
     };

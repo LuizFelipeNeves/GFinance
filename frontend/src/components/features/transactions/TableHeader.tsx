@@ -38,7 +38,7 @@ export const TableHeader = ({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar por descrição..."
+            placeholder="Buscar por descrição ou categoria..."
             className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
           />
         </div>

@@ -5,7 +5,6 @@ import type { Transaction } from '@/data/types';
 export interface TransactionFilters {
     type?: string;
     search?: string;
-    category?: string;
     dateFrom?: string;
     dateTo?: string;
 }
@@ -21,7 +20,6 @@ export const useTransactions = (filters: TransactionFilters = {}) => {
             page: pageParam as number,
             type: filters.type || 'all',
             search: filters.search || '',
-            category: filters.category || '',
             dateFrom: filters.dateFrom || '',
             dateTo: filters.dateTo || '',
         }),

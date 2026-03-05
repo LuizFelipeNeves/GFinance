@@ -34,7 +34,6 @@ export interface TransactionFilters {
     page?: number;
     type?: string;
     search?: string;
-    category?: string;
     dateFrom?: string;
     dateTo?: string;
 }
@@ -118,7 +117,6 @@ export const api = {
                 page: filters.page || 1,
                 type: filters.type || 'all',
                 search: filters.search || '',
-                category: filters.category || '',
                 dateFrom: filters.dateFrom || '',
                 dateTo: filters.dateTo || '',
             });
@@ -190,13 +188,8 @@ export const api = {
             });
         },
 
-        export: async (filters: Omit<TransactionFilters, 'page'> = {}): Promise<Response> => {
-            const queryString = buildQueryString({
-                type: filters.type || 'all',
-                search: filters.search || '',
-                category: filters.category || '',
-            });
-            return fetch(`${API_BASE}/transactions/export?${queryString}`, {
+        export: async (): Promise<Response> => {
+            return fetch(`${API_BASE}/transactions/export`, {
                 headers: getAuthHeaders(),
             });
         },

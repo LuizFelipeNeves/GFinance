@@ -215,7 +215,6 @@ export const swaggerOptions = {
                         { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
                         { name: 'type', in: 'query', schema: { type: 'string', enum: ['all', 'in', 'out'] } },
                         { name: 'search', in: 'query', schema: { type: 'string' } },
-                        { name: 'category', in: 'query', schema: { type: 'string' } },
                         { name: 'dateFrom', in: 'query', schema: { type: 'string' } },
                         { name: 'dateTo', in: 'query', schema: { type: 'string' } },
                     ],
@@ -289,11 +288,7 @@ export const swaggerOptions = {
                     summary: 'Exportar transações',
                     tags: ['Transações'],
                     security: [{ bearerAuth: [] }],
-                    parameters: [
-                        { name: 'type', in: 'query', schema: { type: 'string', enum: ['all', 'in', 'out'] } },
-                        { name: 'search', in: 'query', schema: { type: 'string' } },
-                        { name: 'category', in: 'query', schema: { type: 'string' } },
-                    ],
+                    parameters: [],
                     responses: {
                         200: {
                             description: 'Arquivo exportado',
