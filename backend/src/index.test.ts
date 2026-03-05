@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
-import { app, filterTransactions } from './app.js';
-import { mockData, importJobs } from './mock.js';
-import type { Transaction } from './mock.js';
+import { app } from './app.js';
+import { transactionRepository } from './data/transactionRepository.js';
+import { mockData, type Transaction } from './mock.js';
 
-describe('filterTransactions', () => {
+describe('TransactionRepository.filter', () => {
     const transactions: Transaction[] = [
         { id: '1', desc: 'Salário', cat: 'Trabalho', date: '01/01/2025', val: 5000, type: 'in' },
         { id: '2', desc: 'Supermercado', cat: 'Alimentação', date: '05/01/2025', val: 500, type: 'out' },
@@ -12,34 +12,34 @@ describe('filterTransactions', () => {
     ];
 
     it('should return all transactions with no filters', () => {
-        const result = filterTransactions(transactions, {});
+        const result = transactionRepository.filter({}, transactions);
         expect(result).toHaveLength(3);
     });
 
     it('should filter by type', () => {
-        const result = filterTransactions(transactions, { type: 'in' });
+        const result = transactionRepository.filter({ type: 'in' }, transactions);
         expect(result).toHaveLength(2);
         result.forEach(t => expect(t.type).toBe('in'));
     });
 
     it('should filter by search', () => {
-        const result = filterTransactions(transactions, { search: 'SALÁRIO' });
+        const result = transactionRepository.filter({ search: 'SALÁRIO' }, transactions);
         expect(result).toHaveLength(1);
         expect(result[0].desc).toBe('Salário');
     });
 
     it('should filter by dateFrom', () => {
-        const result = filterTransactions(transactions, { dateFrom: '05/01/2025' });
+        const result = transactionRepository.filter({ dateFrom: '05/01/2025' }, transactions);
         expect(result).toHaveLength(2);
     });
 
     it('should filter by dateTo', () => {
-        const result = filterTransactions(transactions, { dateTo: '05/01/2025' });
+        const result = transactionRepository.filter({ dateTo: '05/01/2025' }, transactions);
         expect(result).toHaveLength(2);
     });
 
     it('should filter by date range', () => {
-        const result = filterTransactions(transactions, { dateFrom: '02/01/2025', dateTo: '09/01/2025' });
+        const result = transactionRepository.filter({ dateFrom: '02/01/2025', dateTo: '09/01/2025' }, transactions);
         expect(result).toHaveLength(1);
         expect(result[0].desc).toBe('Supermercado');
     });
@@ -47,7 +47,7 @@ describe('filterTransactions', () => {
 
 describe('API Routes', () => {
     beforeEach(() => {
-        mockData.transactions = mockData.transactions.filter(t => !t.id.startsWith('t-'));
+        mockData.transactions = mockData.transactions.slice(0, 8);
     });
 
     describe('POST /api/auth/login', () => {
@@ -117,6 +117,12 @@ describe('API Routes', () => {
             expect(res.body.stats).toHaveProperty('balance');
             expect(res.body.stats).toHaveProperty('income');
             expect(res.body.stats).toHaveProperty('expenses');
+        });
+
+        it('should return only 8 transactions', async () => {
+            const res = await request(app).get('/api/dashboard');
+            expect(res.status).toBe(200);
+            expect(res.body.transactions).toHaveLength(8);
         });
     });
 
@@ -316,7 +322,7 @@ describe('API Routes', () => {
         });
 
         it('should handle CSV with monetary symbols in value', async () => {
-            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,R$ 1.500,00,Trabalho,Salário';
+            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,"R$ 1.500,00",Trabalho,Salário';
             const res = await request(app)
                 .post('/api/transactions/import-file')
                 .attach('file', Buffer.from(csv), 'test.csv');

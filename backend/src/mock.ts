@@ -72,7 +72,8 @@ export const fetchMoreTransactions = (page: number): Transaction[] => {
 
 export interface ImportJob {
     id: string;
-    rows: Record<string, unknown>[];
+    userId: string;
+    filePath: string;
     status: 'processing' | 'complete';
     progress: number;
     total: number;
