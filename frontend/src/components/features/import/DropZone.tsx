@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { Upload, FileText } from 'lucide-react';
+import { Upload, FileText, Download } from 'lucide-react';
+import { api } from '@/services/api';
 
 interface DropZoneProps {
   file: File | null;
@@ -16,6 +17,11 @@ export const DropZone = ({ file, onFileSelect, onRemove }: DropZoneProps) => {
       onFileSelect(selectedFile);
     }
     e.target.value = '';
+  };
+
+  const handleDownloadTemplate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await api.transactions.downloadTemplate();
   };
 
   return (
@@ -43,6 +49,13 @@ export const DropZone = ({ file, onFileSelect, onRemove }: DropZoneProps) => {
           </div>
           <p className="text-sm font-bold text-slate-900">Selecione seu arquivo</p>
           <p className="text-xs text-slate-400 mt-1">ou arraste e solte aqui</p>
+          <button
+            onClick={handleDownloadTemplate}
+            className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+          >
+            <Download size={14} />
+            Baixar modelo CSV
+          </button>
         </>
       ) : (
         <div className="flex flex-col items-center">

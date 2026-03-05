@@ -179,17 +179,3 @@ export const validateCsvStructure = (file: File): Promise<CsvValidationResult> =
     });
   });
 };
-
-export const generateSampleCsv = (): string => {
-  const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
-  const examples = [
-    ['04/03/2026', 'entrada', '1500.00', 'Salário', 'Recebimento mensal'],
-    ['05/03/2026', 'saida', '250.00', 'Alimentação', 'Supermercado'],
-    ['06/03/2026', 'entrada', '200.00', 'Freelance', 'Projeto extra'],
-  ];
-
-  return Papa.unparse({
-    fields: headers,
-    data: examples
-  });
-};

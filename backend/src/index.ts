@@ -282,6 +282,22 @@ app.post('/api/transactions/import-file', upload.single('file'), (req: Request, 
     });
 });
 
+// Helper to get value from row with flexible column names
+const getRowValue = (row: Record<string, unknown>, ...keys: string[]): string => {
+    for (const key of keys) {
+        const foundKey = Object.keys(row).find(k => k.toLowerCase().trim() === key);
+        if (foundKey) return String(row[foundKey] || '').trim();
+    }
+    return '';
+};
+
+// Helper to parse type
+const parseType = (typeStr: string): 'in' | 'out' => {
+    const normalized = typeStr.toLowerCase().trim();
+    if (['in', 'entrada', 'receita', 'credito', 'income'].includes(normalized)) return 'in';
+    return 'out';
+};
+
 // Simulate processing and send SSE updates
 const processImport = (jobId: string) => {
     const job = importJobs[jobId];
@@ -294,11 +310,11 @@ const processImport = (jobId: string) => {
         if (processed >= total) {
             const newTransactions: Transaction[] = job.rows.map((r, i) => ({
                 id: `t-import-${Date.now()}-${i}`,
-                desc: (r.descricao as string) || (r.desc as string) || '',
-                cat: (r.categoria as string) || (r.cat as string) || '',
-                date: (r.data as string) || (r.date as string) || '',
-                val: parseFloat(String(r.valor || r.val || 0)),
-                type: ((r.tipo as string) || (r.type as string) || 'out') as 'in' | 'out'
+                desc: getRowValue(r, 'descricao', 'desc', 'description'),
+                cat: getRowValue(r, 'categoria', 'cat', 'category'),
+                date: getRowValue(r, 'data', 'date'),
+                val: parseFloat(getRowValue(r, 'valor', 'val', 'value').replace(/[R$\s.,]/g, '').replace(',', '.')) || 0,
+                type: parseType(getRowValue(r, 'tipo', 'type'))
             }));
 
             mockData.transactions = [...newTransactions, ...mockData.transactions];
@@ -373,19 +389,37 @@ app.get('/api/transactions/export', (req: Request, res: Response) => {
 
     const filteredTransactions = filterTransactions(mockData.transactions, filters);
 
-    const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
-    const csvRows = filteredTransactions.map(t => [
-        t.date,
-        t.type,
-        t.val.toString(),
-        t.cat,
-        `"${t.desc}"`
-    ]);
+    const csvData = filteredTransactions.map(t => ({
+        data: t.date,
+        tipo: t.type,
+        valor: t.val,
+        categoria: t.cat,
+        descricao: t.desc
+    }));
 
-    const csv = [headers.join(','), ...csvRows.map(r => r.join(','))].join('\n');
+    const csv = Papa.unparse(csvData);
 
     res.setHeader('Content-Type', 'text/csv;charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=transacoes.csv');
+    res.send(csv);
+});
+
+// GET /api/transactions/import/template - Download CSV template
+app.get('/api/transactions/import/template', (_req: Request, res: Response) => {
+    const headers = ['data', 'tipo', 'valor', 'categoria', 'descricao'];
+    const examples = [
+        ['04/03/2026', 'entrada', '1500.00', 'Salário', 'Recebimento mensal'],
+        ['05/03/2026', 'saida', '250.00', 'Alimentação', 'Supermercado'],
+        ['06/03/2026', 'entrada', '200.00', 'Freelance', 'Projeto extra'],
+    ];
+
+    const csv = Papa.unparse({
+        fields: headers,
+        data: examples
+    });
+
+    res.setHeader('Content-Type', 'text/csv;charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=modelo_transacoes.csv');
     res.send(csv);
 });
 

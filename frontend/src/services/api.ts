@@ -200,5 +200,20 @@ export const api = {
                 headers: getAuthHeaders(),
             });
         },
+
+        downloadTemplate: async (): Promise<void> => {
+            const response = await fetch(`${API_BASE}/transactions/import/template`, {
+                headers: getAuthHeaders(),
+            });
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'modelo_transacoes.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        },
     },
 };

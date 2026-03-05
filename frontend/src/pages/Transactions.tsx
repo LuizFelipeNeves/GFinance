@@ -3,17 +3,11 @@ import { Plus, Download, FileDown, CirclePlus } from 'lucide-react';
 import { TransactionsTable } from '@/components/features/transactions';
 import { FileImportModal } from '@/components/features/import';
 import { AddTransactionModal } from '@/components/features/transactions/AddTransactionModal';
-import { generateSampleCsv } from '@/utils/csv';
 import { api } from '@/services/api';
 
-const downloadTemplate = () => {
-  const csvContent = generateSampleCsv();
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'modelo_transacoes.csv';
-  link.click();
-  URL.revokeObjectURL(link.href);
+const downloadTemplate = async (e: React.MouseEvent) => {
+  e.stopPropagation();
+  await api.transactions.downloadTemplate();
 };
 
 const handleExport = async () => {
