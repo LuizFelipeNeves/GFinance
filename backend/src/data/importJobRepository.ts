@@ -48,9 +48,10 @@ class ImportJobRepository {
         return this.toPlainJob(doc);
     }
 
-    async getById(id: string): Promise<ImportJob | undefined> {
+    async getById(id: string, userId?: string): Promise<ImportJob | undefined> {
         try {
-            const doc = await ImportJobModel.findById(id).lean();
+            const query = userId ? { _id: id, userId } : { _id: id };
+            const doc = await ImportJobModel.findOne(query).lean();
             if (!doc) return;
             return this.toPlainJob(doc);
         } catch {

@@ -3,15 +3,17 @@ import { transactionService } from '../services/transactionService';
 import { importJobRepository } from '../data/importJobRepository';
 import { saveFile } from '../utils';
 import { getImportQueue } from '../jobs';
+import type { AuthRequest } from '../middleware/auth';
 
-export const getTransactions = async (req: Request, res: Response) => {
+export const getTransactions = async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
     const page = parseInt(req.query.page as string) || 1;
     const type = (req.query.type as string) || 'all';
     const search = (req.query.search as string) || '';
     const dateFrom = (req.query.dateFrom as string) || '';
     const dateTo = (req.query.dateTo as string) || '';
 
-    const result = await transactionService.getTransactions(page, { type, search, dateFrom, dateTo });
+    const result = await transactionService.getTransactions(userId, page, { type, search, dateFrom, dateTo });
     res.json({
         transactions: result.data,
         hasMore: result.hasMore,
@@ -20,32 +22,35 @@ export const getTransactions = async (req: Request, res: Response) => {
     });
 };
 
-export const createTransaction = async (req: Request, res: Response) => {
+export const createTransaction = async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
     const { desc, cat, date, val, type } = req.body as { desc: string; cat: string; date: string; val: string; type: 'in' | 'out' };
-    const transaction = await transactionService.createTransaction({ desc, cat, date, val: parseFloat(val), type });
+    const transaction = await transactionService.createTransaction({ userId, desc, cat, date, val: parseFloat(val), type });
     res.status(201).json(transaction);
 };
 
-export const updateTransaction = async (req: Request, res: Response) => {
+export const updateTransaction = async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
     const { id } = req.params as { id: string };
     const { desc, cat, date, val, type } = req.body as { desc: string; cat: string; date: string; val: string; type: 'in' | 'out' };
-    const transaction = await transactionService.updateTransaction(id, { desc, cat, date, val: parseFloat(val), type });
+    const transaction = await transactionService.updateTransaction(id, userId, { desc, cat, date, val: parseFloat(val), type });
     res.json(transaction || { id, desc, cat, date, val, type });
 };
 
-export const deleteTransaction = async (req: Request, res: Response) => {
+export const deleteTransaction = async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
     const { id } = req.params as { id: string };
-    await transactionService.deleteTransaction(id);
+    await transactionService.deleteTransaction(id, userId);
     res.json({ success: true, id });
 };
 
-export const importFile = async (req: Request, res: Response) => {
+export const importFile = async (req: AuthRequest, res: Response) => {
     if (!req.file) {
         res.status(400).json({ success: false, message: 'Nenhum arquivo enviado' });
         return;
     }
 
-    const userId = 'anonymous';
+    const userId = req.user?.userId || 'anonymous';
     const fileContent = req.file.buffer.toString('utf-8');
     const filePath = saveFile(fileContent, userId);
 
@@ -55,7 +60,8 @@ export const importFile = async (req: Request, res: Response) => {
     res.json({ success: true, jobId: job.id, message: 'Importação iniciada' });
 };
 
-export const getImportStream = (req: Request, res: Response) => {
+export const getImportStream = async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
     const jobId = req.query.jobId as string;
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -66,7 +72,7 @@ export const getImportStream = (req: Request, res: Response) => {
     res.write(`data: ${JSON.stringify({ type: 'connected', jobId })}\n\n`);
 
     const interval = setInterval(async () => {
-        const job = await importJobRepository.getById(jobId);
+        const job = await importJobRepository.getById(jobId, userId);
 
         if (!job) {
             res.write(`data: ${JSON.stringify({ type: 'error', message: 'Job não encontrado' })}\n\n`);
@@ -93,8 +99,12 @@ export const getImportStream = (req: Request, res: Response) => {
     res.on('close', () => clearInterval(interval));
 };
 
-export const exportTransactions = async (_req: Request, res: Response) => {
-    const csv = await transactionService.exportToCsv();
+export const exportTransactions = async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
+    const type = (req.query.type as string) || 'all';
+    const search = (req.query.search as string) || '';
+
+    const csv = await transactionService.exportToCsv(userId, { type, search });
 
     res.setHeader('Content-Type', 'text/csv;charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=transacoes.csv');

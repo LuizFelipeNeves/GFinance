@@ -21,7 +21,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: api
     restart: unless-stopped
@@ -40,6 +40,19 @@ services:
       - mongodb
       - redis
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3001
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
 volumes:
   mongodb_data:
   redis_data:

@@ -10,6 +10,11 @@ export const processImportJob = async (input: ImportJobInput): Promise<void> => 
     const { jobId, filePath } = input;
 
     try {
+        const job = await importJobRepository.getById(jobId);
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+
         const fileContent = readFile(filePath);
         const rows = parseCsv(fileContent);
         const total = rows.length;
@@ -17,6 +22,7 @@ export const processImportJob = async (input: ImportJobInput): Promise<void> => 
         await importJobRepository.update(jobId, { total });
 
         const newTransactions = rows.map(r => ({
+            userId: job.userId,
             desc: getRowValue(r, 'descricao', 'desc', 'description'),
             cat: getRowValue(r, 'categoria', 'cat', 'category'),
             date: getRowValue(r, 'data', 'date'),

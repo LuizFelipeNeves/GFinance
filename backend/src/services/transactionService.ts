@@ -3,6 +3,7 @@ import { toCsv, generateTemplate } from '../utils';
 import type { Transaction } from '../models/transactionModel';
 
 export interface CreateTransactionInput {
+    userId: string;
     desc: string;
     cat: string;
     date: string;
@@ -25,20 +26,21 @@ export interface DashboardData {
 }
 
 class TransactionService {
-    async getDashboard(period: string = 'monthly'): Promise<DashboardData> {
-        return transactionRepository.getDashboardFull(8, period);
+    async getDashboard(userId: string, period: string = 'monthly'): Promise<DashboardData> {
+        return transactionRepository.getDashboardFull(userId, 8, period);
     }
 
-    async getTransactions(page: number, filter: TransactionFilter) {
-        return transactionRepository.paginate(page, filter);
+    async getTransactions(userId: string, page: number, filter: Omit<TransactionFilter, 'userId'>) {
+        return transactionRepository.paginate(page, { ...filter, userId });
     }
 
-    async getTransactionById(id: string) {
-        return transactionRepository.getById(id);
+    async getTransactionById(id: string, userId: string) {
+        return transactionRepository.getById(id, userId);
     }
 
     async createTransaction(input: CreateTransactionInput) {
         return transactionRepository.create({
+            userId: input.userId,
             desc: input.desc,
             cat: input.cat,
             date: input.date,
@@ -47,16 +49,16 @@ class TransactionService {
         });
     }
 
-    async updateTransaction(id: string, input: UpdateTransactionInput) {
-        return transactionRepository.update(id, input);
+    async updateTransaction(id: string, userId: string, input: UpdateTransactionInput) {
+        return transactionRepository.update(id, userId, input);
     }
 
-    async deleteTransaction(id: string) {
-        return transactionRepository.delete(id);
+    async deleteTransaction(id: string, userId: string) {
+        return transactionRepository.delete(id, userId);
     }
 
-    async exportToCsv(filter: TransactionFilter = {}): Promise<string> {
-        const data = await transactionRepository.exportAsCsv(filter);
+    async exportToCsv(userId: string, filter: Omit<TransactionFilter, 'userId'> = {}): Promise<string> {
+        const data = await transactionRepository.exportAsCsv({ ...filter, userId });
         return toCsv(data);
     }
 

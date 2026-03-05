@@ -3,6 +3,7 @@ import { TransactionModel, type ITransaction, type Transaction } from '../models
 export type TransactionInput = Omit<Transaction, 'id'>;
 
 export interface TransactionFilter {
+    userId: string;
     type?: string;
     search?: string;
     dateFrom?: string;
@@ -33,6 +34,7 @@ class TransactionRepository {
     private toPlainTransaction(doc: ITransaction): Transaction {
         return {
             id: doc._id.toString(),
+            userId: doc.userId,
             desc: doc.desc,
             cat: doc.cat,
             date: doc.date,
@@ -41,14 +43,14 @@ class TransactionRepository {
         };
     }
 
-    async getAll(): Promise<Transaction[]> {
-        const docs = await TransactionModel.find().sort({ createdAt: -1 }).lean();
+    async getAll(userId: string): Promise<Transaction[]> {
+        const docs = await TransactionModel.find({ userId }).sort({ createdAt: -1 }).lean();
         return docs.map(this.toPlainTransaction);
     }
 
-    async getById(id: string): Promise<Transaction | undefined> {
+    async getById(id: string, userId: string): Promise<Transaction | undefined> {
         try {
-            const doc = await TransactionModel.findById(id).lean();
+            const doc = await TransactionModel.findOne({ _id: id, userId }).lean();
             if (!doc) return;
             return this.toPlainTransaction(doc);
         } catch {
@@ -60,18 +62,22 @@ class TransactionRepository {
         return this.toPlainTransaction(doc);
     }
 
-    async update(id: string, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
+    async update(id: string, userId: string, transaction: Partial<Transaction>): Promise<Transaction | undefined> {
         try {
-            const doc = await TransactionModel.findByIdAndUpdate(id, transaction, { returnDocument: 'after' }).lean();
+            const doc = await TransactionModel.findOneAndUpdate(
+                { _id: id, userId },
+                transaction,
+                { returnDocument: 'after' }
+            ).lean();
             if (!doc) return;
             return this.toPlainTransaction(doc);
         } catch {
         }
     }
 
-    async delete(id: string): Promise<boolean> {
+    async delete(id: string, userId: string): Promise<boolean> {
         try {
-            const result = await TransactionModel.findByIdAndDelete(id);
+            const result = await TransactionModel.findOneAndDelete({ _id: id, userId });
             return result !== null;
         } catch {
             return false;
@@ -87,7 +93,7 @@ class TransactionRepository {
     }
 
     private buildFilterQuery(filter: TransactionFilter): Record<string, unknown> {
-        const query: Record<string, unknown> = {};
+        const query: Record<string, unknown> = { userId: filter.userId };
 
         if (filter.type && filter.type !== 'all') {
             query.type = filter.type;
@@ -115,7 +121,7 @@ class TransactionRepository {
         return query;
     }
 
-    async paginate(page: number, filter: TransactionFilter = {}): Promise<PaginatedResult<Transaction>> {
+    async paginate(page: number, filter: TransactionFilter): Promise<PaginatedResult<Transaction>> {
         const query = this.buildFilterQuery(filter);
         const skip = (page - 1) * this.pageSize;
 
@@ -132,12 +138,13 @@ class TransactionRepository {
         };
     }
 
-    async getDashboardFull(limit = 8, period: string = 'monthly'): Promise<{
+    async getDashboardFull(userId: string, limit = 8, period: string = 'monthly'): Promise<{
         stats: Stats;
         transactions: Transaction[];
         summary: SummaryItem[];
     }> {
-        const totalDocs = await TransactionModel.countDocuments();
+        const query = { userId };
+        const totalDocs = await TransactionModel.countDocuments(query);
 
         if (totalDocs === 0) {
             return {
@@ -169,7 +176,7 @@ class TransactionRepository {
             previousPeriodStart = formatDate(0, currentYear - 1);
             currentPeriodStart = formatDate(0, currentYear);
             nextPeriodStart = formatDate(0, currentYear + 1);
-            summaryMatch = { type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
+            summaryMatch = { userId, type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
         } else if (period === 'quarterly') {
             const currentQuarter = Math.floor(currentMonth / 3);
             const previousQuarter = currentQuarter === 0 ? 3 : currentQuarter;
@@ -180,7 +187,7 @@ class TransactionRepository {
             previousPeriodStart = formatDate(previousQuarterMonthStart, previousQuarterYear);
             currentPeriodStart = formatDate(currentQuarterMonthStart, currentYear);
             nextPeriodStart = formatDate((currentQuarter + 1) * 3, currentYear);
-            summaryMatch = { type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
+            summaryMatch = { userId, type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
         } else {
             const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
             const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
@@ -188,14 +195,16 @@ class TransactionRepository {
             previousPeriodStart = formatDate(lastMonth, lastMonthYear);
             currentPeriodStart = formatDate(currentMonth, currentYear);
             nextPeriodStart = formatDate((currentMonth + 1) % 12, currentMonth + 1 > 11 ? currentYear + 1 : currentYear);
-            summaryMatch = { type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
+            summaryMatch = { userId, type: 'out', date: { $gte: currentPeriodStart, $lt: nextPeriodStart } };
         }
+
+        const userQuery = { userId };
 
         const result = await TransactionModel.aggregate([
             {
                 $facet: {
                     oldStats: [
-                        { $match: { date: { $gte: previousPeriodStart, $lt: currentPeriodStart } } },
+                        { $match: { ...userQuery, date: { $gte: previousPeriodStart, $lt: currentPeriodStart } } },
                         {
                             $group: {
                                 _id: null,
@@ -205,7 +214,7 @@ class TransactionRepository {
                         }
                     ],
                     newStats: [
-                        { $match: { date: { $gte: currentPeriodStart, $lt: nextPeriodStart } } },
+                        { $match: { ...userQuery, date: { $gte: currentPeriodStart, $lt: nextPeriodStart } } },
                         {
                             $group: {
                                 _id: null,
@@ -215,7 +224,7 @@ class TransactionRepository {
                         }
                     ],
                     oldBalance: [
-                        { $match: { date: { $lt: currentPeriodStart } } },
+                        { $match: { ...userQuery, date: { $lt: currentPeriodStart } } },
                         {
                             $group: {
                                 _id: null,
@@ -225,7 +234,7 @@ class TransactionRepository {
                         }
                     ],
                     newBalance: [
-                        { $match: { date: { $lt: nextPeriodStart } } },
+                        { $match: { ...userQuery, date: { $lt: nextPeriodStart } } },
                         {
                             $group: {
                                 _id: null,
@@ -241,10 +250,10 @@ class TransactionRepository {
                         { $project: { label: '$_id', val: 1, _id: 0 } }
                     ],
                     transactions: [
-                        { $match: { date: { $gte: currentPeriodStart, $lt: nextPeriodStart } } },
+                        { $match: { ...userQuery, date: { $gte: currentPeriodStart, $lt: nextPeriodStart } } },
                         { $sort: { date: -1 } },
                         { $limit: limit },
-                        { $project: { _id: 0, id: { $toString: '$_id' }, desc: 1, cat: 1, date: 1, val: 1, type: 1 } }
+                        { $project: { _id: 0, id: { $toString: '$_id' }, userId: 1, desc: 1, cat: 1, date: 1, val: 1, type: 1 } }
                     ]
                 }
             }
@@ -271,7 +280,7 @@ class TransactionRepository {
         };
     }
 
-    async exportAsCsv(filter: TransactionFilter = {}): Promise<Record<string, unknown>[]> {
+    async exportAsCsv(filter: TransactionFilter): Promise<Record<string, unknown>[]> {
         const query = this.buildFilterQuery(filter);
         const docs = await TransactionModel.find(query).sort({ date: -1 }).lean();
 
