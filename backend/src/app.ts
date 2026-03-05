@@ -48,6 +48,15 @@ export const setupRoutes = () => {
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes);
     app.use('/api/transactions', transactionRoutes);
+
+    app.use((_req: Request, res: Response) => {
+        res.status(404).json({ success: false, message: 'Route not found' });
+    });
+
+    app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+        logger.error('Unhandled error', err);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    });
 };
 
 setupRoutes();

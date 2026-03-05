@@ -4,8 +4,9 @@ import { importJobRepository } from '../data/importJobRepository';
 import { saveFile } from '../utils';
 import { getImportQueue } from '../jobs';
 import type { AuthRequest } from '../middleware/auth';
+import { asyncHandler } from '../middleware';
 
-export const getTransactions = async (req: AuthRequest, res: Response) => {
+export const getTransactions = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const page = parseInt(req.query.page as string) || 1;
     const type = (req.query.type as string) || 'all';
@@ -20,31 +21,31 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
         page: result.page,
         total: result.total
     });
-};
+});
 
-export const createTransaction = async (req: AuthRequest, res: Response) => {
+export const createTransaction = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const { desc, cat, date, val, type } = req.body as { desc: string; cat: string; date: string; val: string; type: 'in' | 'out' };
     const transaction = await transactionService.createTransaction({ userId, desc, cat, date, val: parseFloat(val), type });
     res.status(201).json(transaction);
-};
+});
 
-export const updateTransaction = async (req: AuthRequest, res: Response) => {
+export const updateTransaction = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params as { id: string };
     const { desc, cat, date, val, type } = req.body as { desc: string; cat: string; date: string; val: string; type: 'in' | 'out' };
     const transaction = await transactionService.updateTransaction(id, userId, { desc, cat, date, val: parseFloat(val), type });
     res.json(transaction || { id, desc, cat, date, val, type });
-};
+});
 
-export const deleteTransaction = async (req: AuthRequest, res: Response) => {
+export const deleteTransaction = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const { id } = req.params as { id: string };
     await transactionService.deleteTransaction(id, userId);
     res.json({ success: true, id });
-};
+});
 
-export const importFile = async (req: AuthRequest, res: Response) => {
+export const importFile = asyncHandler(async (req: AuthRequest, res: Response) => {
     if (!req.file) {
         res.status(400).json({ success: false, message: 'Nenhum arquivo enviado' });
         return;
@@ -58,9 +59,9 @@ export const importFile = async (req: AuthRequest, res: Response) => {
     const queue = getImportQueue();
     await queue.add('import', { jobId: job.id, filePath });
     res.json({ success: true, jobId: job.id, message: 'Importação iniciada' });
-};
+});
 
-export const getImportStream = async (req: AuthRequest, res: Response) => {
+export const getImportStream = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const jobId = req.query.jobId as string;
 
@@ -97,9 +98,9 @@ export const getImportStream = async (req: AuthRequest, res: Response) => {
     }, 200);
 
     res.on('close', () => clearInterval(interval));
-};
+});
 
-export const exportTransactions = async (req: AuthRequest, res: Response) => {
+export const exportTransactions = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const type = (req.query.type as string) || 'all';
     const search = (req.query.search as string) || '';
@@ -109,7 +110,7 @@ export const exportTransactions = async (req: AuthRequest, res: Response) => {
     res.setHeader('Content-Type', 'text/csv;charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=transacoes.csv');
     res.send(csv);
-};
+});
 
 export const getTemplate = (_req: Request, res: Response) => {
     const csv = transactionService.getTemplateCsv();
