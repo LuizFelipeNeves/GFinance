@@ -49,6 +49,10 @@ export const setupRoutes = () => {
     app.use('/api/auth', authRoutes);
     app.use('/api/transactions', transactionRoutes);
 
+    app.get('/', (_req: Request, res: Response) => {
+        res.redirect('/api-docs');
+    });
+
     app.use((_req: Request, res: Response) => {
         res.status(404).json({ success: false, message: 'Route not found' });
     });

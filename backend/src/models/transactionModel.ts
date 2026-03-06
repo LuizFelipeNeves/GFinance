@@ -28,11 +28,13 @@ const TransactionSchema = new Schema<ITransaction>(
         cat: { type: String, required: true },
         date: { type: String, required: true },
         val: { type: Number, required: true },
-        type: { type: String, enum: ['in', 'out'], required: true }
+        type: { type: String, enum: ['in', 'out'], required: true, index: true }
     },
     { timestamps: true }
 );
 
 TransactionSchema.index({ userId: 1, date: -1 });
+TransactionSchema.index({ userId: 1, type: 1, date: -1 });
+TransactionSchema.index({ userId: 1, cat: 1 });
 
 export const TransactionModel = mongoose.model<ITransaction>('Transaction', TransactionSchema);
