@@ -4,8 +4,11 @@ import { GetAuthToken, SetAuthToken, SetAuthUser, RemoveAuthToken } from '@/util
 export const API_BASE = '/api';
 
 const handleUnauthorized = () => {
-    RemoveAuthToken();
-    window.location.href = '/login';
+    const isLoginPage = window.location.pathname === '/login';
+    if (!isLoginPage) {
+        RemoveAuthToken();
+        window.location.href = '/login';
+    }
 };
 
 const fetchApi = async <T = unknown>(url: string, options: RequestInit = {}): Promise<T> => {
