@@ -42,9 +42,9 @@ export const RegisterForm = () => {
           icon: <AlertCircle className="h-5 w-5 text-rose-500" />,
         });
       }
-    } catch {
+    } catch (error) {
       toast('Erro ao criar conta', {
-        description: 'Tente novamente mais tarde.',
+        description: error instanceof Error ? error.message : 'Tente novamente mais tarde.',
         icon: <AlertCircle className="h-5 w-5 text-rose-500" />,
       });
     }
