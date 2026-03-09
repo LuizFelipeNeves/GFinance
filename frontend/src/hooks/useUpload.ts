@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
-import { API_BASE } from '@/services/api';
+import { getAPIURL } from '@/services/api';
 import { useEventSource, type SseMessage } from '@/hooks/useEventSource';
 import { validateFileExtension, validateCsvStructure, type CsvValidationResult } from '@/utils/csv';
 
@@ -34,6 +34,7 @@ export const useUpload = (onSuccess?: () => void): UseUploadReturn => {
     const [validationResult, setValidationResult] = useState<CsvValidationResult | null>(null);
     const [importedCount, setImportedCount] = useState(0);
     const queryClient = useQueryClient();
+    const API_BASE = getAPIURL();
 
     const handleSseProgress = useCallback((data: SseMessage) => {
         if (data.progress !== undefined) {
