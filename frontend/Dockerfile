@@ -1,19 +1,17 @@
-FROM node:24-alpine
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci
 
-COPY src/ ./src/
-COPY index.html vite.config.ts tsconfig*.json ./
+COPY . .
 
 RUN npm run build
 
-RUN npm ci --omit=dev
+# runtime
+FROM nginx:alpine
 
-COPY dist ./dist
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 3000
-
-CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
+EXPOSE 80
