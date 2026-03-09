@@ -13,21 +13,33 @@ beforeEach(async () => {
     await clearTestDB();
 });
 
-const fileStorage = new Map();
+const fileStorage = new Map<string, { content: string; stats?: { size: number } }>();
 
 const fsMock = () => ({
     existsSync: vi.fn((path: string) => fileStorage.has(path)),
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn((path: string, content: string) => {
-        fileStorage.set(path, content);
+        fileStorage.set(path, { content });
     }),
     readFileSync: vi.fn((path: string) => {
-        const content = fileStorage.get(path);
-        if (!content) throw new Error('File not found');
-        return content;
+        const file = fileStorage.get(path);
+        if (!file) throw new Error('File not found');
+        return file.content;
     }),
     unlinkSync: vi.fn((path: string) => {
         fileStorage.delete(path);
+    }),
+    statSync: vi.fn((path: string) => {
+        const file = fileStorage.get(path);
+        if (!file) throw new Error('File not found');
+        return { size: file.content.length };
+    }),
+    createReadStream: vi.fn((path: string) => {
+        const file = fileStorage.get(path);
+        if (!file) throw new Error('File not found');
+
+        const { Readable } = require('stream');
+        return Readable.from([file.content]);
     })
 });
 
@@ -37,40 +49,28 @@ vi.mock('fs', () => ({
     ...fsMock()
 }));
 
-vi.mock('multer', async () => {
-    const multer = await vi.importActual<typeof import('multer')>('multer');
-    return multer;
-});
-
-let processImportJobFn: ((input: { jobId: string; filePath: string }) => Promise<void>) | null = null;
+vi.mock('../jobs/queue', () => ({
+    getImportQueue: vi.fn(() => ({
+        add: vi.fn().mockImplementation(async (name: string, data: { jobId: string; filePath: string }) => {
+            const { processImportJob } = await import('../services/importService');
+            await processImportJob(data);
+            return { id: data.jobId };
+        })
+    }))
+}));
 
 vi.mock('bullmq', () => {
-    class MockQueue {
-        add = vi.fn(async (name: string, data: { jobId: string; filePath: string }) => {
-            const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            const job = { id: jobId, data };
-
-            if (processImportJobFn && name === 'import') {
-                try {
-                    await processImportJobFn(data);
-                } catch (error) {
-                    console.error('Error processing import job:', error);
-                }
-            }
-
-            return job;
-        });
-        process = vi.fn();
-        on = vi.fn();
-        close = vi.fn(() => Promise.resolve());
-    }
-
-    class MockWorker {
-        on = vi.fn();
-        close = vi.fn(() => Promise.resolve());
-    }
-
-    return { __esModule: true, Queue: MockQueue, Worker: MockWorker };
+    return {
+        __esModule: true,
+        Queue: vi.fn().mockImplementation(() => ({
+            add: vi.fn().mockResolvedValue({ id: 'mock-job-id', data: {} }),
+            close: vi.fn().mockResolvedValue(undefined)
+        })),
+        Worker: vi.fn().mockImplementation(() => ({
+            on: vi.fn(),
+            close: vi.fn().mockResolvedValue(undefined)
+        }))
+    };
 });
 
 const createRepoMock = () => {
@@ -82,8 +82,9 @@ const createRepoMock = () => {
         reset: () => { storage.clear(); idCounter = 1; },
         add: (item: Record<string, unknown>) => {
             const id = String(idCounter++);
-            storage.set(id, { ...item, id });
-            return { ...item, id };
+            const newItem = { ...item, id };
+            storage.set(id, newItem);
+            return newItem;
         },
         get: (id: string) => storage.get(id),
         all: () => Array.from(storage.values())
@@ -117,15 +118,6 @@ const userRepoMock = {
 
 vi.mock('../data/importJobRepository', () => ({ importJobRepository: importJobRepoMock }));
 vi.mock('../data/userRepository', () => ({ userRepository: userRepoMock }));
-
-beforeAll(async () => {
-    try {
-        const { processImportJob } = await import('../services/importService');
-        processImportJobFn = processImportJob;
-    } catch (e) {
-        console.warn('Could not import processImportJob:', e);
-    }
-});
 
 beforeEach(async () => {
     jobRepo.reset();

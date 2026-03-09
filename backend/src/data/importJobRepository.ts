@@ -1,6 +1,6 @@
 import { ImportJobModel, type IImportJob } from '../models/importJobModel';
 
-export type ImportJobStatus = 'processing' | 'complete';
+export type ImportJobStatus = 'processing' | 'complete' | 'failed';
 
 export interface CreateImportJobParams {
     userId: string;
@@ -12,6 +12,7 @@ export interface UpdateImportJobParams {
     progress?: number;
     total?: number;
     imported?: number;
+    error?: string;
 }
 
 interface ImportJob {
@@ -22,6 +23,7 @@ interface ImportJob {
     progress: number;
     total: number;
     imported?: number;
+    error?: string;
 }
 
 class ImportJobRepository {
@@ -33,7 +35,8 @@ class ImportJobRepository {
             status: doc.status,
             progress: doc.progress,
             total: doc.total,
-            imported: doc.imported
+            imported: doc.imported,
+            error: doc.error
         };
     }
 
@@ -65,6 +68,7 @@ class ImportJobRepository {
             if (params.progress !== undefined) updateData.progress = params.progress;
             if (params.total !== undefined) updateData.total = params.total;
             if (params.imported !== undefined) updateData.imported = params.imported;
+            if (params.error !== undefined) updateData.error = params.error;
 
             const doc = await ImportJobModel.findByIdAndUpdate(id, updateData, { returnDocument: 'after' }).lean();
             if (!doc) return;

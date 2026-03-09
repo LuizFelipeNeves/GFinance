@@ -40,14 +40,14 @@ describe('API Routes', () => {
     beforeEach(async () => {
         const userId = await getTestUserId();
         const testTransactions = [
-            { userId, desc: 'Salário', cat: 'Trabalho', date: '01/01/2025', val: 5000, type: 'in' as const },
-            { userId, desc: 'Supermercado', cat: 'Alimentação', date: '02/01/2025', val: 500, type: 'out' as const },
-            { userId, desc: 'Freelance', cat: 'Trabalho', date: '03/01/2025', val: 1500, type: 'in' as const },
-            { userId, desc: 'Farmácia', cat: 'Saúde', date: '04/01/2025', val: 100, type: 'out' as const },
-            { userId, desc: 'Luz', cat: 'Contas', date: '05/01/2025', val: 150, type: 'out' as const },
-            { userId, desc: 'Internet', cat: 'Contas', date: '06/01/2025', val: 100, type: 'out' as const },
-            { userId, desc: 'Restaurante', cat: 'Alimentação', date: '07/01/2025', val: 200, type: 'out' as const },
-            { userId, desc: 'Gasolina', cat: 'Transporte', date: '08/01/2025', val: 250, type: 'out' as const },
+            { userId, desc: 'Salário', cat: 'Trabalho', date: '01/03/2026', val: 5000, type: 'in' as const },
+            { userId, desc: 'Supermercado', cat: 'Alimentação', date: '02/03/2026', val: 500, type: 'out' as const },
+            { userId, desc: 'Freelance', cat: 'Trabalho', date: '03/03/2026', val: 1500, type: 'in' as const },
+            { userId, desc: 'Farmácia', cat: 'Saúde', date: '04/03/2026', val: 100, type: 'out' as const },
+            { userId, desc: 'Luz', cat: 'Contas', date: '05/03/2026', val: 150, type: 'out' as const },
+            { userId, desc: 'Internet', cat: 'Contas', date: '06/03/2026', val: 100, type: 'out' as const },
+            { userId, desc: 'Restaurante', cat: 'Alimentação', date: '07/03/2026', val: 200, type: 'out' as const },
+            { userId, desc: 'Gasolina', cat: 'Transporte', date: '08/03/2026', val: 250, type: 'out' as const },
         ];
         await transactionRepository.addBatch(testTransactions);
     });
@@ -190,13 +190,13 @@ describe('API Routes', () => {
 
         it('should filter by dateFrom', async () => {
             const token = await getAuthToken();
-            const res = await request(app).get('/api/transactions?dateFrom=01/02/2025').set('Authorization', `Bearer ${token}`);
+            const res = await request(app).get('/api/transactions?dateFrom=01/03/2026').set('Authorization', `Bearer ${token}`);
             expect(res.status).toBe(200);
         });
 
         it('should filter by dateTo', async () => {
             const token = await getAuthToken();
-            const res = await request(app).get('/api/transactions?dateTo=31/01/2025').set('Authorization', `Bearer ${token}`);
+            const res = await request(app).get('/api/transactions?dateTo=09/03/2026').set('Authorization', `Bearer ${token}`);
             expect(res.status).toBe(200);
         });
 
@@ -224,13 +224,13 @@ describe('API Routes', () => {
 
         it('should return 400 with invalid type', async () => {
             const token = await getAuthToken();
-            const res = await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({ desc: 'Test', cat: 'Test', date: '01/01/2025', val: 100, type: 'invalid' });
+            const res = await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({ desc: 'Test', cat: 'Test', date: '09/03/2026', val: 100, type: 'invalid' });
             expect(res.status).toBe(400);
         });
 
         it('should create transaction with valid data', async () => {
             const token = await getAuthToken();
-            const res = await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({ desc: 'Test', cat: 'Test', date: '01/01/2025', val: 100, type: 'in' });
+            const res = await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({ desc: 'Test', cat: 'Test', date: '09/03/2026', val: 100, type: 'in' });
             expect(res.status).toBe(201);
             expect(res.body).toHaveProperty('id');
             expect(res.body.desc).toBe('Test');
@@ -242,7 +242,7 @@ describe('API Routes', () => {
             const userId = await getTestUserId();
             const initialCount = (await transactionRepository.getAll(userId)).length;
 
-            await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({ desc: 'New', cat: 'Test', date: '01/01/2025', val: 50, type: 'out' });
+            await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({ desc: 'New', cat: 'Test', date: '09/03/2026', val: 50, type: 'out' });
 
             const newCount = (await transactionRepository.getAll(userId)).length;
             expect(newCount).toBe(initialCount + 1);
@@ -252,7 +252,7 @@ describe('API Routes', () => {
     describe('PUT /api/transactions/:id', () => {
         it('should update transaction', async () => {
             const token = await getAuthToken();
-            const res = await request(app).put('/api/transactions/1').set('Authorization', `Bearer ${token}`).send({ desc: 'Updated', cat: 'Cat', date: '01/01/2025', val: 200, type: 'in' });
+            const res = await request(app).put('/api/transactions/1').set('Authorization', `Bearer ${token}`).send({ desc: 'Updated', cat: 'Cat', date: '09/03/2026', val: 200, type: 'in' });
             expect(res.status).toBe(200);
             expect(res.body.desc).toBe('Updated');
             expect(res.body.val).toBe(200);
@@ -260,7 +260,7 @@ describe('API Routes', () => {
 
         it('should return 200 even if id not found (upsert behavior)', async () => {
             const token = await getAuthToken();
-            const res = await request(app).put('/api/transactions/not-found').set('Authorization', `Bearer ${token}`).send({ desc: 'Test', cat: 'Test', date: '01/01/2025', val: 100, type: 'in' });
+            const res = await request(app).put('/api/transactions/not-found').set('Authorization', `Bearer ${token}`).send({ desc: 'Test', cat: 'Test', date: '09/03/2026', val: 100, type: 'in' });
             expect(res.status).toBe(200);
         });
     });
@@ -342,7 +342,7 @@ describe('API Routes', () => {
 
         it('should start import with valid CSV', async () => {
             const token = await getAuthToken();
-            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,1000,Trabalho,Salário';
+            const csv = 'data,tipo,valor,categoria,descricao\n09/03/2026,entrada,1000,Trabalho,Salário';
             const res = await request(app)
                 .post('/api/transactions/import-file')
                 .set('Authorization', `Bearer ${token}`)
@@ -355,7 +355,7 @@ describe('API Routes', () => {
 
         it('should accept alternative column names', async () => {
             const token = await getAuthToken();
-            const csv = 'data,type,val,cat,desc\n01/01/2025,in,500,Trabalho,Freelance';
+            const csv = 'data,type,val,cat,desc\n09/03/2026,in,500,Trabalho,Freelance';
             const res = await request(app)
                 .post('/api/transactions/import-file')
                 .set('Authorization', `Bearer ${token}`)
@@ -367,7 +367,7 @@ describe('API Routes', () => {
 
         it('should accept "entrada" and "saida" as type', async () => {
             const token = await getAuthToken();
-            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,1000,Trabalho,Salário\n05/01/2025,saida,500,Alimentação,Supermercado';
+            const csv = 'data,tipo,valor,categoria,descricao\n09/03/2026,entrada,1000,Trabalho,Salário\n05/03/2026,saida,500,Alimentação,Supermercado';
             const res = await request(app)
                 .post('/api/transactions/import-file')
                 .set('Authorization', `Bearer ${token}`)
@@ -379,7 +379,7 @@ describe('API Routes', () => {
 
         it('should handle CSV with monetary symbols in value', async () => {
             const token = await getAuthToken();
-            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,"R$ 1.500,00",Trabalho,Salário';
+            const csv = 'data,tipo,valor,categoria,descricao\n09/03/2026,entrada,"R$ 1.500,00",Trabalho,Salário';
             const res = await request(app)
                 .post('/api/transactions/import-file')
                 .set('Authorization', `Bearer ${token}`)
@@ -391,7 +391,7 @@ describe('API Routes', () => {
 
         it('should return jobId for async processing', async () => {
             const token = await getAuthToken();
-            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,1000,Trabalho,Salário';
+            const csv = 'data,tipo,valor,categoria,descricao\n09/03/2026,entrada,1000,Trabalho,Salário';
             const res = await request(app)
                 .post('/api/transactions/import-file')
                 .set('Authorization', `Bearer ${token}`)
@@ -405,7 +405,7 @@ describe('API Routes', () => {
     describe('GET /api/transactions/import/stream', () => {
         it('should stream events with jobId', async () => {
             const token = await getAuthToken();
-            const csv = 'data,tipo,valor,categoria,descricao\n01/01/2025,entrada,1000,Trabalho,Salário';
+            const csv = 'data,tipo,valor,categoria,descricao\n09/03/2026,entrada,1000,Trabalho,Salário';
             const uploadRes = await request(app)
                 .post('/api/transactions/import-file')
                 .set('Authorization', `Bearer ${token}`)
@@ -642,7 +642,7 @@ describe('API Routes', () => {
             const res = await request(app)
                 .post('/api/transactions')
                 .set('Authorization', `Bearer ${authToken}`)
-                .send({ desc: 'Test', cat: 'Test', date: '01/01/2025', val: 100, type: 'in' });
+                .send({ desc: 'Test', cat: 'Test', date: '09/03/2026', val: 100, type: 'in' });
             expect(res.status).toBe(201);
         });
 
@@ -650,7 +650,7 @@ describe('API Routes', () => {
             await request(app)
                 .post('/api/transactions')
                 .set('Authorization', `Bearer ${authToken}`)
-                .send({ desc: 'User Test', cat: 'Test', date: '01/01/2025', val: 100, type: 'in' });
+                .send({ desc: 'User Test', cat: 'Test', date: '09/03/2026', val: 100, type: 'in' });
             const res = await request(app)
                 .get('/api/transactions')
                 .set('Authorization', `Bearer ${authToken}`);

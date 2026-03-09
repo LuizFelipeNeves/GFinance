@@ -9,13 +9,18 @@ Gerenciador financeiro pessoal com dashboard de transações.
 - Express (API)
 - MongoDB (dados)
 - Redis + BullMQ (fila de processamento)
+- Fast-CSV (Leitura do csv)
 - JWT (autenticação)
 
 **Frontend**
 - React + TypeScript
 - Vite
 - TailwindCSS
+- sonner (toasts)
+- react-intersection-observer (Infinity Scroll)
+- react-day-picker (selecao de datas)
 - Recharts (gráficos)
+- papaparse (validação do arquivo csv)
 
 ## Como Rodar
 
