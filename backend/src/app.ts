@@ -9,6 +9,8 @@ import { logger } from './utils';
 
 export const app = express();
 
+app.set('trust proxy', 1);
+
 const isTest = process.env.NODE_ENV === 'test';
 
 const globalLimiter = rateLimit({
