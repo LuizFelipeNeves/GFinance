@@ -1,10 +1,7 @@
 import type { Transaction } from '@/data/types';
 import { GetAuthToken, SetAuthToken, SetAuthUser, RemoveAuthToken } from '@/utils/token';
 
-export const getAPIURL = (): string => {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    return `${API_URL}/api`;
-}
+export const API_BASE = '/api';
 
 const handleUnauthorized = () => {
     RemoveAuthToken();
@@ -95,7 +92,7 @@ const buildQueryString = (params: Record<string, string | number | undefined>): 
 export const api = {
     auth: {
         login: async (email: string, password: string): Promise<AuthResponse> => {
-            const data = await fetchApi<AuthResponse>(`${getAPIURL()}/auth/login`, {
+            const data = await fetchApi<AuthResponse>(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 body: JSON.stringify({ email, password }),
             });
@@ -106,7 +103,7 @@ export const api = {
             return data;
         },
         register: async (name: string, email: string, password: string): Promise<AuthResponse> => {
-            const data = await fetchApi<AuthResponse>(`${getAPIURL()}/auth/register`, {
+            const data = await fetchApi<AuthResponse>(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 body: JSON.stringify({ name, email, password }),
             });
@@ -120,7 +117,7 @@ export const api = {
 
     dashboard: {
         get: async (period: string = 'monthly'): Promise<DashboardData> => {
-            return fetchApi(`${getAPIURL()}/dashboard?period=${period}`);
+            return fetchApi(`${API_BASE}/dashboard?period=${period}`);
         },
     },
 
@@ -133,25 +130,25 @@ export const api = {
                 dateFrom: filters.dateFrom || '',
                 dateTo: filters.dateTo || '',
             });
-            return fetchApi(`${getAPIURL()}/transactions?${queryString}`);
+            return fetchApi(`${API_BASE}/transactions?${queryString}`);
         },
 
         create: async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-            return fetchApi(`${getAPIURL()}/transactions`, {
+            return fetchApi(`${API_BASE}/transactions`, {
                 method: 'POST',
                 body: JSON.stringify(transaction),
             });
         },
 
         update: async (id: string, transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-            return fetchApi(`${getAPIURL()}/transactions/${id}`, {
+            return fetchApi(`${API_BASE}/transactions/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(transaction),
             });
         },
 
         delete: async (id: string): Promise<{ success: boolean; id: string }> => {
-            return fetchApi(`${getAPIURL()}/transactions/${id}`, {
+            return fetchApi(`${API_BASE}/transactions/${id}`, {
                 method: 'DELETE',
             });
         },
@@ -162,7 +159,7 @@ export const api = {
                 formData.append('file', file);
 
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', `${getAPIURL()}/transactions/import-file`);
+                xhr.open('POST', `${API_BASE}/transactions/import-file`);
 
                 const token = GetAuthToken();
                 if (token) {
@@ -196,7 +193,7 @@ export const api = {
         },
 
         export: async (): Promise<Response> => {
-            const response = await fetch(`${getAPIURL()}/transactions/export`, {
+            const response = await fetch(`${API_BASE}/transactions/export`, {
                 headers: { Authorization: `Bearer ${GetAuthToken()}` },
             });
             if (response.status === 401) {
@@ -209,7 +206,7 @@ export const api = {
         },
 
         downloadTemplate: async (): Promise<void> => {
-            const response = await fetch(`${getAPIURL()}/transactions/import/template`, {
+            const response = await fetch(`${API_BASE}/transactions/import/template`, {
                 headers: { Authorization: `Bearer ${GetAuthToken()}` },
             });
             if (response.status === 401) {
