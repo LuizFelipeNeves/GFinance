@@ -36,9 +36,10 @@ export const LoginForm = () => {
           icon: <AlertCircle className="h-5 w-5 text-rose-500" />,
         });
       }
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Tente novamente mais tarde.';
       toast('Erro ao fazer login', {
-        description: 'Tente novamente mais tarde.',
+        description: message,
         icon: <AlertCircle className="h-5 w-5 text-rose-500" />,
       });
     }

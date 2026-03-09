@@ -23,11 +23,13 @@ const fetchApi = async <T = unknown>(url: string, options: RequestInit = {}): Pr
 
     if (response.status === 401) {
         handleUnauthorized();
-        throw new Error('Unauthorized');
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Unauthorized');
     }
 
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
 
     return response.json();
